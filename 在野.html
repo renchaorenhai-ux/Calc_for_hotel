@@ -471,7 +471,6 @@ input.invalid {
 }
 </style>
 <script>
-// 线上版酒店入口校验：URL 必须带 ?hotel=zaiye，否则整页拦截
 window.__HOTEL = "zaiye";
 (function () {
   try {
@@ -487,7 +486,6 @@ window.__HOTEL = "zaiye";
     <p style="color:#94a3b8;margin:0;line-height:1.6;">链接错误或入口被篡改，请联系发放方获取正确的启动器。</p>
   </div>
 </div>
-
 <div class="container">
   <h1>在野酒店价格调整工具</h1>
   <p class="sub">仅限在野酒店携程后台使用</p>
@@ -701,7 +699,6 @@ const auth = (() => {
   return api;
 })();
 (function() {
-  // 酒店入口校验：不通过则阻断业务初始化
   if (window.__HOTEL_OK !== true) {
     var _gate = document.getElementById("hotelGate");
     if (_gate) _gate.style.display = "flex";
@@ -732,13 +729,13 @@ const auth = (() => {
   const loadRoomsFromStorage = () => safeStore.get(STORAGE_KEY, null);
   const saveRoomsToStorage = () => { safeStore.set(STORAGE_KEY, rooms.map(r => ({ name: r.name, member: r.member }))); };
   const defaultRooms = [
-    { name: "【顶奢】 全海景顶层大床房",     member: "gold" },
-    { name: "【野奢】 全海景私汤三床房",     member: "gold" },
-    { name: "【野奢】 全海景私汤双卧套房",   member: "gold" },
-    { name: "【静谧】 侧海景大床房",         member: "gold" },
-    { name: "【叠语】 侧海景双床房",         member: "gold" },
-    { name: "【静谧】 侧海景优享大床房",     member: "gold" },
-    { name: "【静谧】 侧海景优享双床房",     member: "gold" },
+    { name: "【顶奢】 全海景顶层大床房",  member: "gold" },
+    { name: "【野奢】 全海景私汤三床房",  member: "gold" },
+    { name: "【野奢】 全海景私汤双卧套房", member: "gold" },
+    { name: "【静谧】 侧海景大床房",    member: "gold" },
+    { name: "【叠语】 侧海景双床房",    member: "gold" },
+    { name: "【静谧】 侧海景优享大床房",  member: "gold" },
+    { name: "【静谧】 侧海景优享双床房",  member: "gold" },
   ];
   const savedRooms = loadRoomsFromStorage();
   let rooms = JSON.parse(JSON.stringify(defaultRooms));
