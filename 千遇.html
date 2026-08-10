@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>千遇酒店卖价计算器</title>
+<style>
+:root {
+  --primary: #4f7cff;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --muted: #94a3b8;
+  --border: #e2e8f0;
+}
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  padding: 40px 20px;
+}
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
+  padding: 32px;
+}
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.container > h1,
+.container > .sub {
+  text-align: center;
+}
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  font-size: 15px;
+}
+thead th {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 0 12px 12px;
+  text-align: center;
+}
+tbody tr {
+  background: #fafbfc;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s;
+}
+tbody tr:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+}
+td {
+  padding: 16px 12px;
+  text-align: center;
+  vertical-align: middle;
+}
+td:first-child {
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  padding-left: 20px;
+}
+input {
+  width: 140px;
+  padding: 10px 12px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  text-align: center;
+  outline: none;
+  transition: 0.2s;
+}
+input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(79,124,255,0.15);
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
+.sell {
+  display: inline-block;
+  min-width: 80px;
+  padding: 8px 18px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+  background: linear-gradient(135deg, #eef2ff, #f0f4ff);
+  border-radius: 999px;
+}
+.empty {
+  color: var(--muted);
+  font-size: 15px;
+}
+.income-display {
+  display: inline-block;
+  min-width: 80px;
+  padding: 8px 18px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #16a34a;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border-radius: 999px;
+}
+.room-name-hidden {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.footer {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 24px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.footer span {
+  cursor: default;
+}
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #1a1a1a;
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-size: 14px;
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal-overlay.active {
+  display: flex;
+}
+.modal-member {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px 32px 24px;
+  width: 640px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  position: relative;
+}
+.modal-member h2 {
+  font-size: 18px;
+  margin: 0 0 6px;
+  text-align: center;
+  color: var(--text);
+}
+.modal-member .member-hint {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 16px;
+}
+.modal-member .close-btn {
+  position: absolute;
+  right: 18px;
+  top: 14px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--muted);
+  line-height: 1;
+}
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #fafbfc;
+  border-radius: 12px;
+}
+.member-row .m-name {
+  flex: 1;
+  font-weight: 500;
+}
+.member-row select {
+  width: 180px;
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  outline: none;
+  transition: 0.2s;
+}
+.member-row select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79,124,255,0.12);
+}
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+.modal-actions button {
+  padding: 10px 28px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-cancel {
+  background: #e2e8f0;
+  color: #64748b;
+}
+.btn-cancel:hover { background: #cbd5e1; }
+.modal-password {
+  background: #fff;
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  position: relative;
+  text-align: center;
+}
+.modal-password { width: 420px; }
+.modal-password h2 { font-size: 17px; color: var(--text); margin: 0 0 8px; }
+.extra-entry {
+  margin-top: 24px;
+  text-align: center;
+}
+.extra-entry button {
+  padding: 9px 22px;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #eef2ff, #f0f4ff);
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.extra-entry button:hover { opacity: 0.85; }
+.extra-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.extra-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fafbfc;
+  border-radius: 12px;
+}
+.extra-item .e-info { flex: 1; }
+.extra-item .e-name { font-weight: 500; }
+.extra-item .e-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.extra-item .e-actions { display: flex; gap: 8px; }
+.extra-item .e-actions button {
+  padding: 5px 12px;
+  font-size: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.extra-item .e-edit { background: #eef2ff; color: var(--primary); }
+.extra-item .e-del { background: #fee2e2; color: #ef4444; }
+.extra-form { text-align: left; margin-top: 8px; }
+.extra-form .modal-field-label { display: block; font-size: 13px; color: #555; margin: 14px 0 6px; }
+.extra-form input[type="text"],
+.extra-form input[type="number"] {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 15px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+  outline: none;
+}
+.extra-form input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,124,255,0.12); }
+.checkbox-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.checkbox-wrap label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  padding: 5px 10px;
+  background: #fafbfc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox-wrap label input { width: auto; }
+.room-wrap label { min-width: 100px; }
+.modal-small {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px 32px 24px;
+  width: 340px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  position: relative;
+  text-align: center;
+}
+.modal-small h2 { font-size: 17px; color: var(--text); margin: 0 0 16px; }
+.modal-small .close-btn {
+  position: absolute;
+  right: 18px;
+  top: 14px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--muted);
+  line-height: 1;
+}
+.modal-field-label {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.modal-small > input[type="number"] {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+.modal-password .pw-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 20px;
+}
+.otp-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.otp-box {
+  width: 56px;
+  height: 60px;
+  font-size: 26px;
+  font-family: monospace;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  outline: none;
+  background: #fff;
+  transition: 0.2s;
+  box-sizing: border-box;
+}
+.otp-box:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(79,124,255,0.15);
+}
+.modal-password .pw-error {
+  font-size: 13px;
+  color: #ef4444;
+  margin-top: 10px;
+  min-height: 20px;
+}
+.history-section {
+  margin-top: 20px;
+}
+.history-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.history-title .clear-btn {
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+}
+.history-title .clear-btn:hover { color: #ef4444; }
+.history-list {
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #64748b;
+  text-align: left;
+}
+.history-list div {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+.history-list div:last-child { border-bottom: none; }
+input.invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.12) !important;
+}
+@media (max-width: 700px) {
+  .container { padding: 20px 12px; }
+  table { font-size: 13px; min-width: 480px; }
+  td { padding: 10px 6px; }
+  td:first-child { padding-left: 10px; }
+  input { width: 100px; padding: 8px 6px; font-size: 14px; }
+  .sell, .income-display { min-width: 60px; padding: 6px 10px; font-size: 15px; }
+  .params-bar { flex-direction: column; align-items: stretch; }
+}
+</style>
+<script>
+// 线上版酒店入口校验：URL 必须带 ?hotel=qianyu，否则整页拦截
+window.__HOTEL = "qianyu";
+(function () {
+  try {
+    var got = new URLSearchParams(window.location.search).get("hotel");
+    window.__HOTEL_OK = (got === window.__HOTEL);
+  } catch (e) { window.__HOTEL_OK = false; }
+})();
+</script>
+</head>
+<body><div id="hotelGate" style="position:fixed;inset:0;z-index:99999;display:none;background:#f5f7fa;align-items:center;justify-content:center;font-family:system-ui;text-align:center;">
+  <div>
+    <h2 style="margin:0 0 12px;color:#1a1a1a;">页面入口不属于该酒店</h2>
+    <p style="color:#94a3b8;margin:0;line-height:1.6;">链接错误或入口被篡改，请联系发放方获取正确的启动器。</p>
+  </div>
+</div>
+
+<div class="container">
+  <h1>千遇酒店价格调整工具</h1>
+  <p class="sub">仅限千遇酒店携程后台使用</p>
+  <div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>房间名称</th>
+        <th>目标价格</th>
+        <th>应填卖价</th>
+        <th>预期收入</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  </div>
+  <div class="extra-entry">
+    <button id="btnExtras">额外优惠</button>
+  </div>
+  <div class="history-section">
+    <div class="history-title">
+      <span>操作记录</span>
+      <button class="clear-btn" id="btnClearHistory" style="display:none;">清空记录</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+  <p class="footer" id="footerText">
+    <span id="btnCommission">千遇酒店运维</span>
+    ·
+    <span id="btnPoints">张成前开发</span>
+    ·
+    <span id="btnMember">2026-7-4</span>
+  </p>
+</div>
+<div class="modal-overlay" id="modalCommission">
+  <div class="modal-small">
+    <button class="close-btn" onclick="auth.closeModal('modalCommission')">✖</button>
+    <h2>携程佣金设置</h2>
+    <label class="modal-field-label">携程佣金百分比</label>
+    <input type="number" id="commissionPct" min="0" max="99.99" step="0.01" placeholder="0" />
+    <div class="modal-actions">
+      <button class="btn-primary" id="commissionDone">确认</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalPoints">
+  <div class="modal-small">
+    <button class="close-btn" onclick="auth.closeModal('modalPoints')">✖</button>
+    <h2>积分联盟设置</h2>
+    <label class="modal-field-label">积分联盟百分比</label>
+    <input type="number" id="pointsPct" min="0" max="100" step="0.01" placeholder="0" />
+    <div class="modal-actions">
+      <button class="btn-primary" id="pointsDone">确认</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalMember">
+  <div class="modal-member">
+    <button class="close-btn" onclick="auth.closeModal('modalMember')">✖</button>
+    <h2>会员级别设置</h2>
+    <div class="member-hint">为各房型选择会员级别，用于计算应填卖价（优惠百分比为固定配置）</div>
+    <div class="member-list" id="memberList"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="memberDone">完成</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalExtras">
+  <div class="modal-member">
+    <button class="close-btn" onclick="auth.closeModal('modalExtras')">✖</button>
+    <h2>额外优惠</h2>
+    <div class="member-hint">管理各房型适用的额外优惠（叠加 / 择优 / 房型范围）</div>
+    <div class="extra-list" id="extraList"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="extraAdd">+ 添加优惠</button>
+      <button class="btn-cancel" onclick="auth.closeModal('modalExtras')">完成</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalExtraForm">
+  <div class="modal-member">
+    <button class="close-btn" onclick="auth.closeModal('modalExtraForm')">✖</button>
+    <h2 id="extraFormTitle">添加优惠</h2>
+    <div class="extra-form">
+      <label class="modal-field-label">优惠名称</label>
+      <input type="text" id="extraName" placeholder="请输入优惠名称" />
+      <label class="modal-field-label">优惠百分比（%）</label>
+      <input type="number" id="extraPct" min="0" step="0.01" placeholder="0" />
+      <label class="modal-field-label">与哪些优惠叠加（多选，至少选一个）</label>
+      <div class="checkbox-wrap" id="extraStackWrap"></div>
+      <label class="modal-field-label">与哪些优惠择优（多选，可留空）</label>
+      <div class="checkbox-wrap" id="extraBestWrap"></div>
+      <label class="modal-field-label">应用于哪些房型（多选，默认全部）</label>
+      <div class="checkbox-wrap room-wrap" id="extraRoomsWrap"></div>
+      <div class="pw-error" id="extraFormError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="extraSave">保存</button>
+      <button class="btn-cancel" onclick="auth.closeModal('modalExtraForm')">取消</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalPassword">
+  <div class="modal-password">
+    <h2>请输入访问密码</h2>
+    <div class="otp-row">
+      <input type="password" inputmode="numeric" class="otp-box" id="otp0" maxlength="1" autocomplete="off" />
+      <input type="password" inputmode="numeric" class="otp-box" id="otp1" maxlength="1" autocomplete="off" />
+      <input type="password" inputmode="numeric" class="otp-box" id="otp2" maxlength="1" autocomplete="off" />
+      <input type="password" inputmode="numeric" class="otp-box" id="otp3" maxlength="1" autocomplete="off" />
+    </div>
+    <div class="pw-error" id="pwError"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const auth = (() => {
+  const _dSalt = new Uint8Array([0x4b,0x8e,0x2f,0x9a,0x1c,0x7d,0x3e,0x5f,0x6a,0x8b,0x0c,0x1d,0x2e,0x3f,0x4a,0x5b]);
+  const _dHash = "faf55fc7ab98ca14b2630f390702edfe4645ff860f01123b1f4042c49d991818";
+  const _it = 10000, _d = 5 * 60 * 1000;
+  const _kSalt = "qy_sk_s", _kHash = "qy_sk_h";
+  let _t = 0, _q = null, _busy = false;
+  const _hex = (buf) => Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, "0")).join("");
+  const _parseHex = (s) => {
+    if (typeof s !== "string" || !/^[0-9a-fA-F]+$/.test(s) || s.length % 2 !== 0) return null;
+    return new Uint8Array(s.match(/.{2}/g).map(b => parseInt(b, 16)));
+  };
+  const _vf = async (pw) => {
+    if (typeof crypto === "undefined" || !crypto.subtle || typeof crypto.subtle.importKey !== "function") {
+      return false;
+    }
+    try {
+      const sHex = localStorage.getItem(_kSalt);
+      const hHex = localStorage.getItem(_kHash);
+      const ok = sHex && hHex;
+      const parsed = ok ? _parseHex(sHex) : null;
+      const slt = parsed ? parsed : _dSalt;
+      const hash = ok ? hHex : _dHash;
+      const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+      const dk = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: slt, iterations: _it, hash: "SHA-256" }, km, 256);
+      return _hex(dk) === hash;
+    } catch (e) {
+      console.warn("认证校验出错", e);
+      return false;
+    }
+  };
+  const _rawSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+  const _upgrade = async (pw) => {
+    if (typeof crypto === "undefined" || !crypto.subtle || typeof crypto.getRandomValues !== "function") return;
+    try {
+      const ns = crypto.getRandomValues(new Uint8Array(16));
+      const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+      const dk = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: ns, iterations: _it, hash: "SHA-256" }, km, 256);
+      _rawSet(_kSalt, _hex(ns)); _rawSet(_kHash, _hex(dk));
+    } catch (e) {
+      console.warn("认证盐升级失败", e);
+    }
+  };
+  const _open = (id) => { document.getElementById(id).classList.add("active"); };
+  const _close = (id) => { document.getElementById(id).classList.remove("active"); };
+  const clearOtp = () => { for (let i = 0; i < 4; i++) document.getElementById("otp" + i).value = ""; };
+  const getOtp = () => { let s = ""; for (let i = 0; i < 4; i++) s += document.getElementById("otp" + i).value; return s; };
+  const requireAuth = (act) => {
+    if (_t > 0 && (Date.now() - _t) < _d) { act(); return; }
+    _q = act;
+    clearOtp();
+    document.getElementById("pwError").textContent = "";
+    _open("modalPassword");
+    setTimeout(() => document.getElementById("otp0").focus(), 100);
+  };
+  const closePasswordModal = () => { _q = null; clearOtp(); _close("modalPassword"); };
+  const closeModal = (id) => { _close(id); };
+  const onConfirm = async () => {
+    if (_busy) return;
+    const ipt = getOtp();
+    if (ipt.length < 4) return;
+    _busy = true;
+    try {
+      if (await _vf(ipt)) {
+        _t = Date.now();
+        _close("modalPassword");
+        if (!localStorage.getItem(_kSalt)) _upgrade(ipt).catch(err => console.warn("认证盐升级失败", err));
+        if (_q) { const act = _q; _q = null; act(); }
+      } else {
+        document.getElementById("pwError").textContent = "密码错误，请联系开发人员获取密码";
+        clearOtp();
+        document.getElementById("otp0").focus();
+      }
+    } catch (e) {
+      console.warn("认证过程出错", e);
+      document.getElementById("pwError").textContent = "验证出错，请重试";
+      clearOtp();
+      document.getElementById("otp0").focus();
+    } finally {
+      _busy = false;
+    }
+  };
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById("otp" + i);
+    el.addEventListener("input", function() {
+      this.value = this.value.replace(/\D/g, "");
+      if (this.value) { const n = document.getElementById("otp" + (i + 1)); if (n) n.focus(); }
+      if (getOtp().length >= 4) onConfirm();
+    });
+    el.addEventListener("keydown", function(e) {
+      if (e.key === "Backspace" && !this.value) { const p = document.getElementById("otp" + (i - 1)); if (p) p.focus(); }
+    });
+  }
+  const api = { requireAuth, closePasswordModal, closeModal };
+  Object.freeze(api);
+  return api;
+})();
+(function() {
+  // 酒店入口校验：不通过则阻断业务初始化
+  if (window.__HOTEL_OK !== true) {
+    var _gate = document.getElementById("hotelGate");
+    if (_gate) _gate.style.display = "flex";
+    return;
+  }
+  const safeStore = {
+    get(k, fb) { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : fb; } catch { return fb; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+    rawGet(k, fb) { try { const v = localStorage.getItem(k); return v != null ? v : fb; } catch { return fb; } },
+    rawSet(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+  const STORAGE_KEY = "qianyu_rooms_data";
+  const SETTINGS_KEY = STORAGE_KEY + "_settings";
+  const MEMBER_TIERS = [
+    { key: "silver",  name: "白银贵宾",      discount: 0.05 },
+    { key: "gold",    name: "黄金贵宾",      discount: 0.10 },
+    { key: "platinum",name: "铂金贵宾",      discount: 0.10 },
+    { key: "diamond", name: "钻石贵宾",      discount: 0.15 },
+    { key: "jgold",   name: "金钻贵宾",      discount: 0.20 },
+    { key: "black",   name: "黑钻及合伙人",  discount: 0.20 },
+  ];
+  const getTierDiscount = (key) => {
+    const t = MEMBER_TIERS.find(x => x.key === key);
+    return t ? t.discount : 0;
+  };
+  const MEMBER_OPTIONS_HTML = () =>
+    MEMBER_TIERS.map(t => `<option value="${t.key}">${t.name}（${Math.round(t.discount * 100)}%）</option>`).join("");
+  const loadRoomsFromStorage = () => safeStore.get(STORAGE_KEY, null);
+  const saveRoomsToStorage = () => { safeStore.set(STORAGE_KEY, rooms.map(r => ({ name: r.name, member: r.member }))); };
+  const defaultRooms = [
+    { name: "全海景套房",     member: "gold" },
+    { name: "全海景大床房",   member: "gold" },
+    { name: "全海景双卧套房", member: "gold" },
+    { name: "独享庭院",       member: "gold" },
+    { name: "舒适双卧套房",   member: "gold" },
+    { name: "舒适大床房",     member: "gold" },
+    { name: "舒适套房",       member: "gold" },
+    { name: "全海景亲子房",   member: "gold" },
+    { name: "舒适亲子房",     member: "gold" },
+  ];
+  const savedRooms = loadRoomsFromStorage();
+  let rooms = JSON.parse(JSON.stringify(defaultRooms));
+  const isValidTier = (k) => MEMBER_TIERS.some(t => t.key === k);
+  if (Array.isArray(savedRooms)) {
+    rooms.forEach(r => {
+      const sr = savedRooms.find(s => s && typeof s === "object" && s.name === r.name);
+      if (!sr) return;
+      if (isValidTier(sr.member)) r.member = sr.member;
+    });
+  }
+  const DEFAULT_SETTINGS = { commissionPct: 15, pointsPct: 5 };
+  const _rawSettings = safeStore.get(SETTINGS_KEY, null);
+  const settings = { commissionPct: DEFAULT_SETTINGS.commissionPct, pointsPct: DEFAULT_SETTINGS.pointsPct };
+  if (_rawSettings && typeof _rawSettings === "object") {
+    const cc = Number(_rawSettings.commissionPct);
+    const pp = Number(_rawSettings.pointsPct);
+    settings.commissionPct = (!isNaN(cc) && cc >= 0 && cc < 100) ? cc : DEFAULT_SETTINGS.commissionPct;
+    settings.pointsPct = (!isNaN(pp) && pp >= 0 && pp <= 100) ? pp : DEFAULT_SETTINGS.pointsPct;
+  }
+  const saveSettings = () => safeStore.set(SETTINGS_KEY, settings);
+  const EXTRAS_KEY = STORAGE_KEY + "_extras";
+  const rawExtras = safeStore.get(EXTRAS_KEY, []);
+  let extras = (Array.isArray(rawExtras) ? rawExtras : []).filter(x => x && typeof x === "object" && x.id).map(ex => {
+    const p = Number(ex.pct);
+    return {
+      id: String(ex.id),
+      name: typeof ex.name === "string" ? ex.name : "未命名优惠",
+      pct: (isNaN(p) || p < 0 || p > 100) ? 0 : p,
+      stackWith: Array.isArray(ex.stackWith) ? ex.stackWith.filter(s => typeof s === "string") : [],
+      bestWith: Array.isArray(ex.bestWith) ? ex.bestWith.filter(s => typeof s === "string") : [],
+      rooms: Array.isArray(ex.rooms) ? ex.rooms.filter(s => typeof s === "string") : []
+    };
+  });
+  const saveExtras = () => safeStore.set(EXTRAS_KEY, extras);
+  const genId = () => "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const extraAppliesTo = (ex, roomName) => !ex.rooms || ex.rooms.length === 0 || ex.rooms.indexOf(roomName) !== -1;
+  let history = safeStore.get(STORAGE_KEY + "_history", []);
+  const saveHistory = () => { safeStore.set(STORAGE_KEY + "_history", history); };
+  const addHistory = (record) => {
+    const entry = { type: record.type, time: new Date().toLocaleString("zh-CN"), ...(record.summary && { summary: record.summary }) };
+    history.unshift(entry);
+    if (history.length > 50) history.length = 50;
+    saveHistory();
+    renderHistory();
+  };
+  const renderHistory = () => {
+    const el = document.getElementById("historyList");
+    const btnClear = document.getElementById("btnClearHistory");
+    if (!history.length) {
+      el.innerHTML = '<div style="text-align:center;padding:12px 0;">暂无操作记录</div>';
+      btnClear.style.display = "none";
+      return;
+    }
+    btnClear.style.display = "";
+    el.innerHTML = history.map(h => `<div>${h.time} · ${h.type}${h.summary ? ` · ${h.summary}` : ""}</div>`).join("");
+  };
+  document.getElementById("btnClearHistory").addEventListener("click", () => {
+    if (history.length === 0) return;
+    if (confirm("确定要清空所有历史记录吗？此操作不可撤销。")) {
+      history = [];
+      saveHistory();
+      renderHistory();
+      showToast("历史记录已清空");
+    }
+  });
+  const calcSellPrice = (target, totalDiscountPct) => {
+    const t = Number(target);
+    const d = Number(totalDiscountPct);
+    if (isNaN(t) || t < 0 || isNaN(d) || d >= 100 || d < 0) return NaN;
+    const denom = 1 - d / 100;
+    return denom <= 0 ? NaN : Math.round(t / denom * 100) / 100;
+  };
+  const calcExtraDiscount = (roomName) => {
+    if (!extras.length) return 0;
+    const applicable = extras.filter(ex => extraAppliesTo(ex, roomName));
+    if (!applicable.length) return 0;
+    const idToEx = {};
+    applicable.forEach(ex => { idToEx[ex.id] = ex; });
+    const bestAdj = {};
+    applicable.forEach(ex => {
+      (ex.bestWith || []).forEach(bid => {
+        if (!idToEx[bid]) return;
+        if (!bestAdj[ex.id]) bestAdj[ex.id] = new Set();
+        if (!bestAdj[bid]) bestAdj[bid] = new Set();
+        bestAdj[ex.id].add(bid);
+        bestAdj[bid].add(ex.id);
+      });
+    });
+    const visited = new Set();
+    const groups = [];
+    applicable.forEach(ex => {
+      if (visited.has(ex.id)) return;
+      const comp = [];
+      const queue = [ex.id];
+      visited.add(ex.id);
+      while (queue.length) {
+        const cur = queue.shift();
+        comp.push(cur);
+        ((bestAdj[cur]) || []).forEach(nb => {
+          if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
+        });
+      }
+      groups.push(comp);
+    });
+    const winners = new Set();
+    let sum = 0;
+    groups.forEach(comp => {
+      if (comp.length === 1) {
+        const ex = idToEx[comp[0]];
+        if (!(ex.bestWith && ex.bestWith.length)) {
+          sum += Number(ex.pct) || 0;
+        } else {
+          winners.add(comp[0]);
+          sum += Number(ex.pct) || 0;
+        }
+      } else {
+        let best = null;
+        comp.forEach(id => {
+          const ex = idToEx[id];
+          if (!best || (Number(ex.pct) || 0) > best.pct) best = { id, pct: Number(ex.pct) || 0 };
+        });
+        winners.add(best.id);
+        sum += best.pct;
+      }
+    });
+    return sum;
+  };
+  const calcTotalDiscount = (roomName, memberKey, pointsPct) => {
+    const points = Number(pointsPct) > 0 ? Number(pointsPct) : 0;
+    const member = getTierDiscount(memberKey) * 100;
+    const extra = calcExtraDiscount(roomName);
+    return points + member + extra;
+  };
+  const calcIncome = (target, commissionPct) => {
+    const t = Number(target);
+    const c = Number(commissionPct);
+    if (isNaN(t) || t < 0 || isNaN(c) || c >= 100 || c < 0) return NaN;
+    return Math.round(t * (1 - c / 100) * 100) / 100;
+  };
+  const openModal = (id) => { document.getElementById(id).classList.add("active"); };
+  const PRICE_MAX = 99999999;
+  const tbody = document.getElementById("tbody");
+  rooms.forEach((room, i) => {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    const ns = document.createElement("span");
+    ns.className = "room-name-hidden";
+    ns.textContent = room.name;
+    td.appendChild(ns);
+    tr.appendChild(td);
+    const tdi = document.createElement("td");
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.min = "0";
+    inp.max = PRICE_MAX;
+    inp.step = "any";
+    inp.placeholder = "输入价格";
+    inp.dataset.index = i;
+    inp.addEventListener("input", () => updateRow(i));
+    tdi.appendChild(inp);
+    tr.appendChild(tdi);
+    const tds = document.createElement("td");
+    const sp = document.createElement("span");
+    sp.className = "sell";
+    sp.id = "sell-" + i;
+    sp.innerHTML = '<span class="empty">—</span>';
+    tds.appendChild(sp);
+    tr.appendChild(tds);
+    const tdi2 = document.createElement("td");
+    const sp2 = document.createElement("span");
+    sp2.className = "income-display";
+    sp2.id = "income-" + i;
+    sp2.innerHTML = '<span class="empty">—</span>';
+    tdi2.appendChild(sp2);
+    tr.appendChild(tdi2);
+    tbody.appendChild(tr);
+  });
+  const updateRow = (i) => {
+    const inp = document.querySelector(`input[data-index="${i}"]`);
+    const v = inp.value;
+    const el = document.getElementById("sell-" + i);
+    const incEl = document.getElementById("income-" + i);
+    const num = Number(v);
+    const invalid = v !== "" && (isNaN(num) || num < 0 || num > PRICE_MAX);
+    inp.classList.toggle("invalid", invalid);
+    if (v === "" || isNaN(num) || num < 0) {
+      el.innerHTML = '<span class="empty">—</span>';
+      incEl.innerHTML = '<span class="empty">—</span>';
+      return;
+    }
+    if (num > PRICE_MAX) { el.textContent = "溢出"; incEl.textContent = "溢出"; return; }
+    const totalDiscount = calcTotalDiscount(rooms[i].name, rooms[i].member, settings.pointsPct);
+    const sell = calcSellPrice(v, totalDiscount);
+    const income = calcIncome(v, settings.commissionPct);
+    el.textContent = isNaN(sell) ? "—" : sell.toFixed(2);
+    incEl.textContent = isNaN(income) ? "—" : income.toFixed(2);
+  };
+  const refreshAllRows = () => rooms.forEach((_, i) => updateRow(i));
+  const commissionInp = document.getElementById("commissionPct");
+  const pointsInp = document.getElementById("pointsPct");
+  const openCommission = () => {
+    commissionInp.value = settings.commissionPct;
+    openModal("modalCommission");
+  };
+  commissionInp.addEventListener("input", () => {
+    const n = Number(commissionInp.value);
+    settings.commissionPct = (commissionInp.value !== "" && !isNaN(n) && n >= 0 && n < 100) ? n : 0;
+    saveSettings();
+    refreshAllRows();
+  });
+  document.getElementById("commissionDone").addEventListener("click", () => {
+    auth.closeModal("modalCommission");
+    addHistory({ type: "修改佣金", summary: `携程佣金：${settings.commissionPct}%` });
+  });
+  const openPoints = () => {
+    pointsInp.value = settings.pointsPct;
+    openModal("modalPoints");
+  };
+  pointsInp.addEventListener("input", () => {
+    const n = Number(pointsInp.value);
+    settings.pointsPct = (pointsInp.value !== "" && !isNaN(n) && n >= 0 && n <= 100) ? n : 0;
+    saveSettings();
+    refreshAllRows();
+  });
+  document.getElementById("pointsDone").addEventListener("click", () => {
+    auth.closeModal("modalPoints");
+    addHistory({ type: "修改积分联盟", summary: `积分联盟：${settings.pointsPct}%` });
+  });
+  const buildMemberList = () => {
+    const container = document.getElementById("memberList");
+    container.innerHTML = "";
+    rooms.forEach((room, i) => {
+      const row = document.createElement("div");
+      row.className = "member-row";
+      row.innerHTML =
+        `<div class="m-name">${room.name}</div>` +
+        `<select data-index="${i}">${MEMBER_OPTIONS_HTML()}</select>`;
+      container.appendChild(row);
+      const sel = row.querySelector("select");
+      sel.value = room.member;
+      sel.addEventListener("change", () => {
+        rooms[i].member = sel.value;
+        saveRoomsToStorage();
+        refreshAllRows();
+      });
+    });
+  };
+  const openMember = () => {
+    buildMemberList();
+    openModal("modalMember");
+  };
+  document.getElementById("memberDone").addEventListener("click", () => {
+    auth.closeModal("modalMember");
+    addHistory({ type: "会员级别设置", summary: "更新了房型会员级别" });
+  });
+  document.getElementById("btnCommission").addEventListener("click", () => {
+    auth.requireAuth(openCommission);
+  });
+  document.getElementById("btnPoints").addEventListener("click", () => {
+    auth.requireAuth(openPoints);
+  });
+  document.getElementById("btnMember").addEventListener("click", () => {
+    auth.requireAuth(openMember);
+  });
+  const FIXED_STACK_LABELS = { "__member__": "会员优惠", "__points__": "积分联盟" };
+  const renderExtraList = () => {
+    const container = document.getElementById("extraList");
+    if (!extras.length) {
+      container.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);">暂无额外优惠，点击下方「添加优惠」创建</div>';
+      return;
+    }
+    container.innerHTML = extras.map(ex => {
+      const roomTxt = !ex.rooms || !ex.rooms.length ? "全部房型" : ex.rooms.join("、");
+      const stackTxt = (ex.stackWith || []).map(id => {
+        if (FIXED_STACK_LABELS[id]) return FIXED_STACK_LABELS[id];
+        const t = extras.find(x => x.id === id);
+        return t ? t.name : id;
+      }).join("、") || "无";
+      const bestTxt = (ex.bestWith || []).map(id => {
+        const t = extras.find(x => x.id === id);
+        return t ? t.name : id;
+      }).join("、") || "无";
+      return `<div class="extra-item">
+        <div class="e-info">
+          <div class="e-name">${ex.name}（${ex.pct}%）</div>
+          <div class="e-meta">房型：${roomTxt} ｜ 叠加：${stackTxt} ｜ 择优：${bestTxt}</div>
+        </div>
+        <div class="e-actions">
+          <button class="e-edit" data-edit="${ex.id}">修改</button>
+          <button class="e-del" data-del="${ex.id}">删除</button>
+        </div>
+      </div>`;
+    }).join("");
+  };
+  document.getElementById("btnExtras").addEventListener("click", () => {
+    renderExtraList();
+    openModal("modalExtras");
+  });
+  document.getElementById("extraAdd").addEventListener("click", () => openExtraForm(null));
+  document.getElementById("extraList").addEventListener("click", (e) => {
+    const editBtn = e.target.closest("[data-edit]");
+    const delBtn = e.target.closest("[data-del]");
+    if (editBtn) {
+      const ex = extras.find(x => x.id === editBtn.dataset.edit);
+      if (ex) openExtraForm(ex);
+    } else if (delBtn) {
+      const id = delBtn.dataset.del;
+      if (confirm("确定删除该优惠吗？此操作不可撤销。")) {
+        extras = extras.filter(x => x.id !== id);
+        extras.forEach(x => {
+          if (x.stackWith) x.stackWith = x.stackWith.filter(s => s !== id);
+          if (x.bestWith) x.bestWith = x.bestWith.filter(s => s !== id);
+        });
+        saveExtras();
+        renderExtraList();
+        refreshAllRows();
+        showToast("优惠已删除");
+      }
+    }
+  });
+  let editingExtraId = null;
+  const openExtraForm = (ex) => {
+    editingExtraId = ex ? ex.id : null;
+    document.getElementById("extraFormTitle").textContent = ex ? "修改优惠" : "添加优惠";
+    document.getElementById("extraFormError").textContent = "";
+    document.getElementById("extraName").value = ex ? ex.name : "";
+    document.getElementById("extraPct").value = ex ? ex.pct : "";
+    const others = extras.filter(x => x.id !== (ex ? ex.id : null));
+    const otherOptions = others.length
+      ? others.map(o => `<label><input type="checkbox" value="${o.id}">${o.name}（${o.pct}%）</label>`).join("")
+      : "";
+    const fixedStackOptions =
+      `<label><input type="checkbox" value="__member__" checked disabled>会员优惠</label>` +
+      `<label><input type="checkbox" value="__points__" checked disabled>积分联盟</label>`;
+    document.getElementById("extraStackWrap").innerHTML =
+      `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">默认不勾选任何优惠</div>` +
+      fixedStackOptions + otherOptions;
+    document.getElementById("extraBestWrap").innerHTML =
+      `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">默认不勾选任何优惠</div>` +
+      (otherOptions || '<div style="color:var(--muted);font-size:12px;">暂无其他优惠</div>');
+    document.querySelectorAll("#extraStackWrap input[type=checkbox]").forEach(cb => {
+      if (ex && (ex.stackWith || []).indexOf(cb.value) !== -1) cb.checked = true;
+    });
+    document.querySelectorAll("#extraBestWrap input[type=checkbox]").forEach(cb => {
+      if (ex && (ex.bestWith || []).indexOf(cb.value) !== -1) cb.checked = true;
+    });
+    document.getElementById("extraRoomsWrap").innerHTML = rooms.map(r =>
+      `<label><input type="checkbox" value="${r.name}" ${(!ex || !ex.rooms || !ex.rooms.length) ? "checked" : (ex.rooms.indexOf(r.name) !== -1 ? "checked" : "")}>${r.name}</label>`
+    ).join("");
+    openModal("modalExtraForm");
+  };
+  document.getElementById("extraSave").addEventListener("click", () => {
+    const name = document.getElementById("extraName").value.trim();
+    const pct = Number(document.getElementById("extraPct").value);
+    const stackIds = Array.from(new Set([
+      "__member__", "__points__",
+      ...Array.from(document.querySelectorAll("#extraStackWrap input:checked")).map(cb => cb.value)
+    ]));
+    const bestIds = Array.from(document.querySelectorAll("#extraBestWrap input:checked")).map(cb => cb.value);
+    const roomIds = Array.from(document.querySelectorAll("#extraRoomsWrap input:checked")).map(cb => cb.value);
+    if (!name) { document.getElementById("extraFormError").textContent = "请输入优惠名称"; return; }
+    if (isNaN(pct) || pct < 0 || pct > 100) { document.getElementById("extraFormError").textContent = "请输入有效的优惠百分比（0-100）"; return; }
+    if (stackIds.length === 0) {
+      document.getElementById("extraFormError").textContent = "请设置该优惠与哪些优惠叠加" + (bestIds.length === 0 ? "/择优" : "");
+      return;
+    }
+    const overlap = stackIds.filter(id => bestIds.indexOf(id) !== -1);
+    if (overlap.length) {
+      document.getElementById("extraFormError").textContent = "不能与同一优惠既叠加又择优，请检查勾选";
+      return;
+    }
+    document.getElementById("extraFormError").textContent = "";
+    if (editingExtraId) {
+      const ex = extras.find(x => x.id === editingExtraId);
+      if (ex) {
+        ex.name = name;
+        ex.pct = pct;
+        ex.stackWith = stackIds;
+        ex.bestWith = bestIds;
+        ex.rooms = roomIds;
+      }
+    } else {
+      extras.push({ id: genId(), name, pct, stackWith: stackIds, bestWith: bestIds, rooms: roomIds });
+    }
+    saveExtras();
+    auth.closeModal("modalExtraForm");
+    renderExtraList();
+    refreshAllRows();
+    showToast(editingExtraId ? "优惠已更新" : "优惠已添加");
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (document.getElementById("modalPassword").classList.contains("active")) { auth.closePasswordModal(); return; }
+    document.querySelectorAll(".modal-overlay.active").forEach(el => el.classList.remove("active"));
+  });
+  document.querySelectorAll(".modal-overlay").forEach(o => {
+    o.addEventListener("click", (e) => { if (e.target === o) { if (o.id === "modalPassword") auth.closePasswordModal(); else o.classList.remove("active"); } });
+  });
+  const showToast = (msg) => {
+    const toast = document.getElementById("toast");
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2500);
+  };
+  renderHistory();
+})();
+</script>
+</body>
+</html>
