@@ -114,6 +114,16 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--muted);
   font-size: 15px;
 }
+.customer-price {
+  display: inline-block;
+  min-width: 80px;
+  padding: 8px 18px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #b45309;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-radius: 999px;
+}
 .income-display {
   display: inline-block;
   min-width: 80px;
@@ -287,8 +297,13 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
+  margin: 0 6px;
 }
 .extra-entry button:hover { opacity: 0.85; }
+#btnSubsidies {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  color: #b45309;
+}
 .extra-list {
   display: flex;
   flex-direction: column;
@@ -466,7 +481,7 @@ input.invalid {
   td { padding: 10px 6px; }
   td:first-child { padding-left: 10px; }
   input { width: 100px; padding: 8px 6px; font-size: 14px; }
-  .sell, .income-display { min-width: 60px; padding: 6px 10px; font-size: 15px; }
+  .sell, .income-display, .customer-price { min-width: 60px; padding: 6px 10px; font-size: 15px; }
   .params-bar { flex-direction: column; align-items: stretch; }
 }
 </style>
@@ -496,6 +511,7 @@ window.__HOTEL = "dayuxiaozhu";
         <th>房间名称</th>
         <th>目标价格</th>
         <th>应填卖价</th>
+        <th>客户实付价</th>
         <th>预期收入</th>
       </tr>
     </thead>
@@ -504,6 +520,7 @@ window.__HOTEL = "dayuxiaozhu";
   </div>
   <div class="extra-entry">
     <button id="btnExtras">额外优惠</button>
+    <button id="btnSubsidies">携程补贴</button>
   </div>
   <div class="history-section">
     <div class="history-title">
@@ -585,6 +602,37 @@ window.__HOTEL = "dayuxiaozhu";
     <div class="modal-actions">
       <button class="btn-primary" id="extraSave">保存</button>
       <button class="btn-cancel" onclick="auth.closeModal('modalExtraForm')">取消</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalSubsidies">
+  <div class="modal-member">
+    <button class="close-btn" onclick="auth.closeModal('modalSubsidies')">✖</button>
+    <h2>携程补贴</h2>
+    <div class="member-hint">管理携程平台替客户支付的补贴（叠加，按后台卖价计算，不影响酒店收入）</div>
+    <div class="extra-list" id="subsidyList"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="subsidyAdd">+ 添加补贴</button>
+      <button class="btn-cancel" onclick="auth.closeModal('modalSubsidies')">完成</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalSubsidyForm">
+  <div class="modal-member">
+    <button class="close-btn" onclick="auth.closeModal('modalSubsidyForm')">✖</button>
+    <h2 id="subsidyFormTitle">添加补贴</h2>
+    <div class="extra-form">
+      <label class="modal-field-label">补贴名称</label>
+      <input type="text" id="subsidyName" placeholder="如：十亿补贴" />
+      <label class="modal-field-label">补贴百分比（%）</label>
+      <input type="number" id="subsidyPct" min="0" step="0.01" placeholder="0" />
+      <label class="modal-field-label">应用于哪些房型（多选，默认全部）</label>
+      <div class="checkbox-wrap room-wrap" id="subsidyRoomsWrap"></div>
+      <div class="pw-error" id="subsidyFormError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="subsidySave">保存</button>
+      <button class="btn-cancel" onclick="auth.closeModal('modalSubsidyForm')">取消</button>
     </div>
   </div>
 </div>
@@ -769,6 +817,23 @@ const auth = (() => {
   const saveExtras = () => safeStore.set(EXTRAS_KEY, extras);
   const genId = () => "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const extraAppliesTo = (ex, roomName) => !ex.rooms || ex.rooms.length === 0 || ex.rooms.indexOf(roomName) !== -1;
+  const SUBSIDIES_KEY = STORAGE_KEY + "_subsidies";
+  const rawSubsidies = safeStore.get(SUBSIDIES_KEY, []);
+  let subsidies = (Array.isArray(rawSubsidies) ? rawSubsidies : []).filter(x => x && typeof x === "object" && x.id).map(s => {
+    const p = Number(s.pct);
+    return {
+      id: String(s.id),
+      name: typeof s.name === "string" ? s.name : "未命名补贴",
+      pct: (isNaN(p) || p < 0 || p > 100) ? 0 : p,
+      rooms: Array.isArray(s.rooms) ? s.rooms.filter(r => typeof r === "string") : []
+    };
+  });
+  const saveSubsidies = () => safeStore.set(SUBSIDIES_KEY, subsidies);
+  const subsidyAppliesTo = (s, roomName) => !s.rooms || s.rooms.length === 0 || s.rooms.indexOf(roomName) !== -1;
+  const calcSubsidyPct = (roomName) => {
+    if (!subsidies.length) return 0;
+    return subsidies.reduce((sum, s) => sum + (subsidyAppliesTo(s, roomName) ? (Number(s.pct) || 0) : 0), 0);
+  };
   let history = safeStore.get(STORAGE_KEY + "_history", []);
   const saveHistory = () => { safeStore.set(STORAGE_KEY + "_history", history); };
   const addHistory = (record) => {
@@ -872,9 +937,94 @@ const auth = (() => {
     if (isNaN(t) || t < 0 || isNaN(c) || c >= 100 || c < 0) return NaN;
     return Math.round(t * (1 - c / 100) * 100) / 100;
   };
+  const calcCustomerPrice = (target, sellPrice, subsidyPct) => {
+    const t = Number(target);
+    const s = Number(sellPrice);
+    const p = Number(subsidyPct);
+    if (isNaN(t) || t < 0 || isNaN(s) || s < 0 || isNaN(p) || p >= 100 || p < 0) return NaN;
+    const subsidyValue = s * p / 100;
+    return t - subsidyValue;
+  };
+  const reverseTargetFromCustomer = (customerPrice, roomName, memberKey, pointsPct) => {
+    const cp = Number(customerPrice);
+    if (isNaN(cp) || cp <= 0) return NaN;
+    const totalDiscount = calcTotalDiscount(roomName, memberKey, pointsPct);
+    const subsidyPct = calcSubsidyPct(roomName);
+    const denom = 1 - totalDiscount / 100;
+    if (denom <= 0) return NaN;
+    const factor = (subsidyPct / 100) / denom;
+    const div = 1 - factor;
+    if (div <= 0) return NaN;
+    return cp / div;
+  };
+  const reverseTargetFromIncome = (income, commissionPct) => {
+    const inc = Number(income);
+    if (isNaN(inc) || inc <= 0) return NaN;
+    const c = Number(commissionPct);
+    if (isNaN(c) || c >= 100 || c < 0) return NaN;
+    const denom = 1 - c / 100;
+    if (denom <= 0) return NaN;
+    return inc / denom;
+  };
   const openModal = (id) => { document.getElementById(id).classList.add("active"); };
   const PRICE_MAX = 99999999;
   const tbody = document.getElementById("tbody");
+  const mkNumInput = (i, col, placeholder) => {
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.min = "0";
+    inp.max = PRICE_MAX;
+    inp.step = "any";
+    inp.placeholder = placeholder;
+    inp.addEventListener("wheel", (e) => e.preventDefault(), { passive: false });
+    inp.dataset.index = i;
+    inp.dataset.col = col;
+    return inp;
+  };
+  const recalcRow = (i, source) => {
+    const room = rooms[i];
+    const totalDiscount = calcTotalDiscount(room.name, room.member, settings.pointsPct);
+    const subsidyPct = calcSubsidyPct(room.name);
+    const sellEl = document.getElementById("sell-" + i);
+    const tInp = document.querySelector(`input[data-index="${i}"][data-col="target"]`);
+    const cInp = document.querySelector(`input[data-index="${i}"][data-col="customer"]`);
+    const iInp = document.querySelector(`input[data-index="${i}"][data-col="income"]`);
+    const get = (el) => el ? el.value : "";
+    const setVal = (el, val) => { if (el && document.activeElement !== el) el.value = val; };
+    let target;
+    if (source === "customer") {
+      target = reverseTargetFromCustomer(get(cInp), room.name, room.member, settings.pointsPct);
+    } else if (source === "income") {
+      target = reverseTargetFromIncome(get(iInp), settings.commissionPct);
+    } else {
+      target = Number(get(tInp));
+      if (isNaN(target) || target === 0) {
+        const cv = get(cInp), iv = get(iInp);
+        if (cv !== "" && !isNaN(Number(cv))) {
+          target = reverseTargetFromCustomer(cv, room.name, room.member, settings.pointsPct);
+        } else if (iv !== "" && !isNaN(Number(iv))) {
+          target = reverseTargetFromIncome(iv, settings.commissionPct);
+        }
+      }
+    }
+    if (isNaN(target) || target < 0) {
+      setVal(tInp, ""); sellEl.innerHTML = '<span class="empty">—</span>';
+      setVal(cInp, ""); setVal(iInp, "");
+      return;
+    }
+    const sell = target / (1 - totalDiscount / 100);
+    const customer = calcCustomerPrice(target, sell, subsidyPct);
+    const income = target * (1 - settings.commissionPct / 100);
+    setVal(tInp, Math.round(target));
+    sellEl.textContent = isNaN(sell) ? "—" : String(Math.round(sell));
+    setVal(cInp, isNaN(customer) ? "" : String(Math.round(customer)));
+    setVal(iInp, isNaN(income) ? "" : (Math.round(income * 100) / 100).toFixed(2));
+  };
+  let rowTimers = {};
+  const scheduleRecalc = (i, col) => {
+    if (rowTimers[i]) clearTimeout(rowTimers[i]);
+    rowTimers[i] = setTimeout(() => { recalcRow(i, col); }, 300);
+  };
   rooms.forEach((room, i) => {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
@@ -883,54 +1033,24 @@ const auth = (() => {
     ns.textContent = room.name;
     td.appendChild(ns);
     tr.appendChild(td);
-    const tdi = document.createElement("td");
-    const inp = document.createElement("input");
-    inp.type = "number";
-    inp.min = "0";
-    inp.max = PRICE_MAX;
-    inp.step = "any";
-    inp.placeholder = "输入价格";
-    inp.dataset.index = i;
-    inp.addEventListener("input", () => updateRow(i));
-    tdi.appendChild(inp);
-    tr.appendChild(tdi);
+    const tInp = mkNumInput(i, "target", "目标价");
+    tInp.addEventListener("input", () => scheduleRecalc(i, "target"));
+    const td1 = document.createElement("td"); td1.appendChild(tInp); tr.appendChild(td1);
     const tds = document.createElement("td");
     const sp = document.createElement("span");
     sp.className = "sell";
     sp.id = "sell-" + i;
     sp.innerHTML = '<span class="empty">—</span>';
-    tds.appendChild(sp);
-    tr.appendChild(tds);
-    const tdi2 = document.createElement("td");
-    const sp2 = document.createElement("span");
-    sp2.className = "income-display";
-    sp2.id = "income-" + i;
-    sp2.innerHTML = '<span class="empty">—</span>';
-    tdi2.appendChild(sp2);
-    tr.appendChild(tdi2);
+    tds.appendChild(sp); tr.appendChild(tds);
+    const cInp = mkNumInput(i, "customer", "实付价");
+    cInp.addEventListener("input", () => scheduleRecalc(i, "customer"));
+    const td3 = document.createElement("td"); td3.appendChild(cInp); tr.appendChild(td3);
+    const iInp = mkNumInput(i, "income", "收入");
+    iInp.addEventListener("input", () => scheduleRecalc(i, "income"));
+    const td2 = document.createElement("td"); td2.appendChild(iInp); tr.appendChild(td2);
     tbody.appendChild(tr);
   });
-  const updateRow = (i) => {
-    const inp = document.querySelector(`input[data-index="${i}"]`);
-    const v = inp.value;
-    const el = document.getElementById("sell-" + i);
-    const incEl = document.getElementById("income-" + i);
-    const num = Number(v);
-    const invalid = v !== "" && (isNaN(num) || num < 0 || num > PRICE_MAX);
-    inp.classList.toggle("invalid", invalid);
-    if (v === "" || isNaN(num) || num < 0) {
-      el.innerHTML = '<span class="empty">—</span>';
-      incEl.innerHTML = '<span class="empty">—</span>';
-      return;
-    }
-    if (num > PRICE_MAX) { el.textContent = "溢出"; incEl.textContent = "溢出"; return; }
-    const totalDiscount = calcTotalDiscount(rooms[i].name, rooms[i].member, settings.pointsPct);
-    const sell = calcSellPrice(v, totalDiscount);
-    const income = calcIncome(v, settings.commissionPct);
-    el.textContent = isNaN(sell) ? "—" : sell.toFixed(2);
-    incEl.textContent = isNaN(income) ? "—" : income.toFixed(2);
-  };
-  const refreshAllRows = () => rooms.forEach((_, i) => updateRow(i));
+  const refreshAllRows = () => rooms.forEach((_, i) => recalcRow(i, "target"));
   const commissionInp = document.getElementById("commissionPct");
   const pointsInp = document.getElementById("pointsPct");
   const openCommission = () => {
@@ -1122,6 +1242,79 @@ const auth = (() => {
     renderExtraList();
     refreshAllRows();
     showToast(editingExtraId ? "优惠已更新" : "优惠已添加");
+  });
+  const renderSubsidyList = () => {
+    const container = document.getElementById("subsidyList");
+    if (!subsidies.length) {
+      container.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);">暂无补贴，点击下方「添加补贴」创建</div>';
+      return;
+    }
+    container.innerHTML = subsidies.map(s => {
+      const roomTxt = !s.rooms || !s.rooms.length ? "全部房型" : s.rooms.join("、");
+      return `<div class="extra-item">
+        <div class="e-info">
+          <div class="e-name">${s.name}（${s.pct}%）</div>
+          <div class="e-meta">房型：${roomTxt}</div>
+        </div>
+        <div class="e-actions">
+          <button class="e-edit" data-sedit="${s.id}">修改</button>
+          <button class="e-del" data-sdel="${s.id}">删除</button>
+        </div>
+      </div>`;
+    }).join("");
+  };
+  document.getElementById("btnSubsidies").addEventListener("click", () => {
+    renderSubsidyList();
+    openModal("modalSubsidies");
+  });
+  document.getElementById("subsidyAdd").addEventListener("click", () => openSubsidyForm(null));
+  document.getElementById("subsidyList").addEventListener("click", (e) => {
+    const editBtn = e.target.closest("[data-sedit]");
+    const delBtn = e.target.closest("[data-sdel]");
+    if (editBtn) {
+      const s = subsidies.find(x => x.id === editBtn.dataset.sedit);
+      if (s) openSubsidyForm(s);
+    } else if (delBtn) {
+      const id = delBtn.dataset.sdel;
+      if (confirm("确定删除该补贴吗？此操作不可撤销。")) {
+        subsidies = subsidies.filter(x => x.id !== id);
+        saveSubsidies();
+        renderSubsidyList();
+        refreshAllRows();
+        showToast("补贴已删除");
+      }
+    }
+  });
+  let editingSubsidyId = null;
+  const openSubsidyForm = (s) => {
+    editingSubsidyId = s ? s.id : null;
+    document.getElementById("subsidyFormTitle").textContent = s ? "修改补贴" : "添加补贴";
+    document.getElementById("subsidyFormError").textContent = "";
+    document.getElementById("subsidyName").value = s ? s.name : "";
+    document.getElementById("subsidyPct").value = s ? s.pct : "";
+    document.getElementById("subsidyRoomsWrap").innerHTML = rooms.map(r =>
+      `<label><input type="checkbox" value="${r.name}" ${(!s || !s.rooms || !s.rooms.length) ? "checked" : (s.rooms.indexOf(r.name) !== -1 ? "checked" : "")}>${r.name}</label>`
+    ).join("");
+    openModal("modalSubsidyForm");
+  };
+  document.getElementById("subsidySave").addEventListener("click", () => {
+    const name = document.getElementById("subsidyName").value.trim();
+    const pct = Number(document.getElementById("subsidyPct").value);
+    const roomIds = Array.from(document.querySelectorAll("#subsidyRoomsWrap input:checked")).map(cb => cb.value);
+    if (!name) { document.getElementById("subsidyFormError").textContent = "请输入补贴名称"; return; }
+    if (isNaN(pct) || pct < 0 || pct > 100) { document.getElementById("subsidyFormError").textContent = "请输入有效的补贴百分比（0-100）"; return; }
+    document.getElementById("subsidyFormError").textContent = "";
+    if (editingSubsidyId) {
+      const s = subsidies.find(x => x.id === editingSubsidyId);
+      if (s) { s.name = name; s.pct = pct; s.rooms = roomIds; }
+    } else {
+      subsidies.push({ id: genId(), name, pct, rooms: roomIds });
+    }
+    saveSubsidies();
+    auth.closeModal("modalSubsidyForm");
+    renderSubsidyList();
+    refreshAllRows();
+    showToast(editingSubsidyId ? "补贴已更新" : "补贴已添加");
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
