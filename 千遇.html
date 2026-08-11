@@ -509,7 +509,6 @@ window.__HOTEL = "qianyu";
     <thead>
       <tr>
         <th>房间名称</th>
-        <th>目标价格</th>
         <th>应填卖价</th>
         <th>客户实付价</th>
         <th>预期收入</th>
@@ -876,101 +875,132 @@ const auth = (() => {
     const denom = 1 - d / 100;
     return denom <= 0 ? NaN : Math.round(t / denom * 100) / 100;
   };
-  const calcExtraDiscount = (roomName) => {
-    if (!extras.length) return 0;
-    const applicable = extras.filter(ex => extraAppliesTo(ex, roomName));
-    if (!applicable.length) return 0;
-    const idToEx = {};
-    applicable.forEach(ex => { idToEx[ex.id] = ex; });
-    const bestAdj = {};
-    applicable.forEach(ex => {
-      (ex.bestWith || []).forEach(bid => {
-        if (!idToEx[bid]) return;
-        if (!bestAdj[ex.id]) bestAdj[ex.id] = new Set();
-        if (!bestAdj[bid]) bestAdj[bid] = new Set();
-        bestAdj[ex.id].add(bid);
-        bestAdj[bid].add(ex.id);
+  const calcBuyPcts = (roomName, memberKey) => {
+    const pcts = [getTierDiscount(memberKey) * 100];
+    if (extras.length) {
+      const applicable = extras.filter(ex => extraAppliesTo(ex, roomName));
+      const idToEx = {};
+      applicable.forEach(ex => { idToEx[ex.id] = ex; });
+      const bestAdj = {};
+      applicable.forEach(ex => {
+        (ex.bestWith || []).forEach(bid => {
+          if (!idToEx[bid]) return;
+          if (!bestAdj[ex.id]) bestAdj[ex.id] = new Set();
+          if (!bestAdj[bid]) bestAdj[bid] = new Set();
+          bestAdj[ex.id].add(bid);
+          bestAdj[bid].add(ex.id);
+        });
       });
-    });
-    const visited = new Set();
-    const groups = [];
-    applicable.forEach(ex => {
-      if (visited.has(ex.id)) return;
-      const comp = [];
-      const queue = [ex.id];
-      visited.add(ex.id);
-      while (queue.length) {
-        const cur = queue.shift();
-        comp.push(cur);
-        ((bestAdj[cur]) || []).forEach(nb => {
-          if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
-        });
-      }
-      groups.push(comp);
-    });
-    const winners = new Set();
-    let sum = 0;
-    groups.forEach(comp => {
-      if (comp.length === 1) {
-        const ex = idToEx[comp[0]];
-        if (!(ex.bestWith && ex.bestWith.length)) {
-          sum += Number(ex.pct) || 0;
-        } else {
-          winners.add(comp[0]);
-          sum += Number(ex.pct) || 0;
+      const visited = new Set();
+      const groups = [];
+      applicable.forEach(ex => {
+        if (visited.has(ex.id)) return;
+        const comp = [];
+        const queue = [ex.id];
+        visited.add(ex.id);
+        while (queue.length) {
+          const cur = queue.shift();
+          comp.push(cur);
+          ((bestAdj[cur]) || []).forEach(nb => {
+            if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
+          });
         }
-      } else {
-        let best = null;
-        comp.forEach(id => {
-          const ex = idToEx[id];
-          if (!best || (Number(ex.pct) || 0) > best.pct) best = { id, pct: Number(ex.pct) || 0 };
-        });
-        winners.add(best.id);
-        sum += best.pct;
-      }
-    });
-    return sum;
+        groups.push(comp);
+      });
+      groups.forEach(comp => {
+        if (comp.length === 1) {
+          const ex = idToEx[comp[0]];
+          if (!(ex.bestWith && ex.bestWith.length)) {
+            pcts.push(Number(ex.pct) || 0);
+          } else {
+            pcts.push(Number(ex.pct) || 0);
+          }
+        } else {
+          let best = null;
+          comp.forEach(id => {
+            const ex = idToEx[id];
+            if (!best || (Number(ex.pct) || 0) > best.pct) best = Number(ex.pct) || 0;
+          });
+          pcts.push(best);
+        }
+      });
+    }
+    return pcts;
   };
-  const calcTotalDiscount = (roomName, memberKey, pointsPct) => {
-    const points = Number(pointsPct) > 0 ? Number(pointsPct) : 0;
-    const member = getTierDiscount(memberKey) * 100;
-    const extra = calcExtraDiscount(roomName);
-    return points + member + extra;
+  const calcExtraDiscount = (roomName) => {
+    const buy = calcBuyPcts(roomName, "gold");
+    return buy.length > 1 ? buy.slice(1).reduce((a, b) => a + b, 0) : 0;
   };
-  const calcIncome = (target, commissionPct) => {
-    const t = Number(target);
+  const targetFromSell = (S, buyPcts) => {
+    let T = S;
+    buyPcts.forEach(p => { T -= Math.round(S * p / 100); });
+    return T;
+  };
+  const subsidyValueFromSell = (S, roomName) => {
+    const sp = calcSubsidyPct(roomName);
+    if (sp <= 0) return 0;
+    return Math.round(S * sp / 100);
+  };
+  const customerPriceFromSell = (S, roomName, buyPcts) => {
+    return targetFromSell(S, buyPcts) - subsidyValueFromSell(S, roomName);
+  };
+  const incomeFromSell = (S, roomName, buyPcts, commissionPct, pointsPct) => {
+    const T = targetFromSell(S, buyPcts);
     const c = Number(commissionPct);
-    if (isNaN(t) || t < 0 || isNaN(c) || c >= 100 || c < 0) return NaN;
-    return Math.round(t * (1 - c / 100) * 100) / 100;
+    const p = Number(pointsPct);
+    if (isNaN(c) || c >= 100 || c < 0) return NaN;
+    if (isNaN(p) || p < 0 || p > 100) return NaN;
+    const income = T * (1 - c / 100) - Math.round(S * p / 100);
+    return Math.round(income * 100) / 100;
   };
-  const calcCustomerPrice = (target, sellPrice, subsidyPct) => {
-    const t = Number(target);
-    const s = Number(sellPrice);
-    const p = Number(subsidyPct);
-    if (isNaN(t) || t < 0 || isNaN(s) || s < 0 || isNaN(p) || p >= 100 || p < 0) return NaN;
-    const subsidyValue = s * p / 100;
-    return t - subsidyValue;
+  const solveSellFromCustomerPrice = (cp, roomName, memberKey) => {
+    const CP = Number(cp);
+    if (isNaN(CP) || CP <= 0) return NaN;
+    const buyPcts = calcBuyPcts(roomName, memberKey);
+    const f = (S) => customerPriceFromSell(S, roomName, buyPcts);
+    let lo = 0, hi = Math.max(CP, 1);
+    while (f(hi) < CP && hi < PRICE_MAX * 2) hi *= 2;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (f(mid) < CP) lo = mid; else hi = mid;
+    }
+    const S0 = Math.round(hi);
+    let best = null, bestDelta = Infinity;
+    for (let d = -8; d <= 8; d++) {
+      const S = S0 + d;
+      if (S < 0) continue;
+      const delta = Math.abs(f(S) - CP);
+      if (delta < bestDelta) { bestDelta = delta; best = S; }
+    }
+    return (bestDelta === 0) ? best : (best !== null ? best : NaN);
   };
-  const reverseTargetFromCustomer = (customerPrice, roomName, memberKey, pointsPct) => {
-    const cp = Number(customerPrice);
-    if (isNaN(cp) || cp <= 0) return NaN;
-    const totalDiscount = calcTotalDiscount(roomName, memberKey, pointsPct);
-    const subsidyPct = calcSubsidyPct(roomName);
-    const denom = 1 - totalDiscount / 100;
-    if (denom <= 0) return NaN;
-    const factor = (subsidyPct / 100) / denom;
-    const div = 1 - factor;
-    if (div <= 0) return NaN;
-    return cp / div;
-  };
-  const reverseTargetFromIncome = (income, commissionPct) => {
+  const solveSellFromIncome = (income, roomName, memberKey, commissionPct, pointsPct) => {
     const inc = Number(income);
     if (isNaN(inc) || inc <= 0) return NaN;
-    const c = Number(commissionPct);
+    const buyPcts = calcBuyPcts(roomName, memberKey);
+    const c = Number(commissionPct), p = Number(pointsPct);
     if (isNaN(c) || c >= 100 || c < 0) return NaN;
-    const denom = 1 - c / 100;
-    if (denom <= 0) return NaN;
-    return inc / denom;
+    if (isNaN(p) || p < 0 || p > 100) return NaN;
+    const f = (S) => incomeFromSell(S, roomName, buyPcts, c, p);
+    let lo = 0, hi = Math.max(inc, 1) * 5;
+    while (f(hi) < inc && hi < PRICE_MAX * 2) hi *= 2;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (f(mid) < inc) lo = mid; else hi = mid;
+    }
+    const S0 = Math.round(hi);
+    let best = null, bestDelta = Infinity;
+    for (let d = -20; d <= 20; d++) {
+      const S = S0 + d;
+      if (S < 0) continue;
+      const delta = Math.abs(f(S) - inc);
+      if (delta < bestDelta) { bestDelta = delta; best = S; }
+    }
+    return best !== null ? best : NaN;
+  };
+  const verifyCustomerPrice = (S, roomName, memberKey) => {
+    const buyPcts = calcBuyPcts(roomName, memberKey);
+    return customerPriceFromSell(S, roomName, buyPcts);
   };
   const openModal = (id) => { document.getElementById(id).classList.add("active"); };
   const PRICE_MAX = 99999999;
@@ -989,40 +1019,26 @@ const auth = (() => {
   };
   const recalcRow = (i, source) => {
     const room = rooms[i];
-    const totalDiscount = calcTotalDiscount(room.name, room.member, settings.pointsPct);
-    const subsidyPct = calcSubsidyPct(room.name);
     const sellEl = document.getElementById("sell-" + i);
-    const tInp = document.querySelector(`input[data-index="${i}"][data-col="target"]`);
     const cInp = document.querySelector(`input[data-index="${i}"][data-col="customer"]`);
     const iInp = document.querySelector(`input[data-index="${i}"][data-col="income"]`);
     const get = (el) => el ? el.value : "";
     const setVal = (el, val) => { if (el && document.activeElement !== el) el.value = val; };
-    let target;
+    let S;
     if (source === "customer") {
-      target = reverseTargetFromCustomer(get(cInp), room.name, room.member, settings.pointsPct);
-    } else if (source === "income") {
-      target = reverseTargetFromIncome(get(iInp), settings.commissionPct);
+      S = solveSellFromCustomerPrice(get(cInp), room.name, room.member);
     } else {
-      target = Number(get(tInp));
-      if (isNaN(target) || target === 0) {
-        const cv = get(cInp), iv = get(iInp);
-        if (cv !== "" && !isNaN(Number(cv))) {
-          target = reverseTargetFromCustomer(cv, room.name, room.member, settings.pointsPct);
-        } else if (iv !== "" && !isNaN(Number(iv))) {
-          target = reverseTargetFromIncome(iv, settings.commissionPct);
-        }
-      }
+      S = solveSellFromIncome(get(iInp), room.name, room.member, settings.commissionPct, settings.pointsPct);
     }
-    if (isNaN(target) || target < 0) {
-      setVal(tInp, ""); sellEl.innerHTML = '<span class="empty">—</span>';
+    if (isNaN(S) || S < 0) {
+      sellEl.innerHTML = '<span class="empty">—</span>';
       setVal(cInp, ""); setVal(iInp, "");
       return;
     }
-    const sell = target / (1 - totalDiscount / 100);
-    const customer = calcCustomerPrice(target, sell, subsidyPct);
-    const income = target * (1 - settings.commissionPct / 100);
-    setVal(tInp, Math.round(target));
-    sellEl.textContent = isNaN(sell) ? "—" : String(Math.round(sell));
+    const buyPcts = calcBuyPcts(room.name, room.member);
+    const customer = customerPriceFromSell(S, room.name, buyPcts);
+    const income = incomeFromSell(S, room.name, buyPcts, settings.commissionPct, settings.pointsPct);
+    sellEl.textContent = String(Math.round(S));
     setVal(cInp, isNaN(customer) ? "" : String(Math.round(customer)));
     setVal(iInp, isNaN(income) ? "" : (Math.round(income * 100) / 100).toFixed(2));
   };
@@ -1039,9 +1055,6 @@ const auth = (() => {
     ns.textContent = room.name;
     td.appendChild(ns);
     tr.appendChild(td);
-    const tInp = mkNumInput(i, "target", "目标价");
-    tInp.addEventListener("input", () => scheduleRecalc(i, "target"));
-    const td1 = document.createElement("td"); td1.appendChild(tInp); tr.appendChild(td1);
     const tds = document.createElement("td");
     const sp = document.createElement("span");
     sp.className = "sell";
@@ -1056,7 +1069,15 @@ const auth = (() => {
     const td2 = document.createElement("td"); td2.appendChild(iInp); tr.appendChild(td2);
     tbody.appendChild(tr);
   });
-  const refreshAllRows = () => rooms.forEach((_, i) => recalcRow(i, "target"));
+  const refreshAllRows = () => {
+    rooms.forEach((_, i) => {
+      const cInp = document.querySelector(`input[data-index="${i}"][data-col="customer"]`);
+      const iInp = document.querySelector(`input[data-index="${i}"][data-col="income"]`);
+      const cv = cInp ? cInp.value : "", iv = iInp ? iInp.value : "";
+      if (cv !== "" && !isNaN(Number(cv))) recalcRow(i, "customer");
+      else if (iv !== "" && !isNaN(Number(iv))) recalcRow(i, "income");
+    });
+  };
   const commissionInp = document.getElementById("commissionPct");
   const pointsInp = document.getElementById("pointsPct");
   const openCommission = () => {
@@ -1123,7 +1144,7 @@ const auth = (() => {
   document.getElementById("btnMember").addEventListener("click", () => {
     auth.requireAuth(openMember);
   });
-  const FIXED_STACK_LABELS = { "__member__": "会员优惠", "__points__": "积分联盟" };
+  const FIXED_STACK_LABELS = { "__member__": "会员优惠" };
   const renderExtraList = () => {
     const container = document.getElementById("extraList");
     if (!extras.length) {
@@ -1191,8 +1212,7 @@ const auth = (() => {
       ? others.map(o => `<label><input type="checkbox" value="${o.id}">${o.name}（${o.pct}%）</label>`).join("")
       : "";
     const fixedStackOptions =
-      `<label><input type="checkbox" value="__member__" checked disabled>会员优惠</label>` +
-      `<label><input type="checkbox" value="__points__" checked disabled>积分联盟</label>`;
+      `<label><input type="checkbox" value="__member__" checked disabled>会员优惠</label>`;
     document.getElementById("extraStackWrap").innerHTML =
       `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">默认不勾选任何优惠</div>` +
       fixedStackOptions + otherOptions;
@@ -1214,7 +1234,7 @@ const auth = (() => {
     const name = document.getElementById("extraName").value.trim();
     const pct = Number(document.getElementById("extraPct").value);
     const stackIds = Array.from(new Set([
-      "__member__", "__points__",
+      "__member__",
       ...Array.from(document.querySelectorAll("#extraStackWrap input:checked")).map(cb => cb.value)
     ]));
     const bestIds = Array.from(document.querySelectorAll("#extraBestWrap input:checked")).map(cb => cb.value);
