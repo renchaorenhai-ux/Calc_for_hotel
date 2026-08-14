@@ -962,13 +962,17 @@ const auth = (() => {
     buyPcts.forEach(p => { T -= Math.ceil(S * p / 100); });
     return T;
   };
-  const subsidyValueFromSell = (S, roomName) => {
+  const subsidyValueFromSell = (S, roomName, buyPcts) => {
     const sp = calcSubsidyPct(roomName);
     if (sp <= 0) return 0;
+    if (isFlash(roomName)) {
+      const T = targetFromSell(S, buyPcts);
+      return Math.ceil(T * sp / 100);
+    }
     return Math.ceil(S * sp / 100);
   };
   const customerPriceFromSell = (S, roomName, buyPcts) => {
-    return targetFromSell(S, buyPcts) - subsidyValueFromSell(S, roomName);
+    return targetFromSell(S, buyPcts) - subsidyValueFromSell(S, roomName, buyPcts);
   };
   const incomeFromSell = (S, roomName, buyPcts, commissionPct, pointsPct) => {
     const T = targetFromSell(S, buyPcts);
