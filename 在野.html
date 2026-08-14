@@ -1268,7 +1268,7 @@ const auth = (() => {
       return;
     }
     container.innerHTML = list.map(ex => {
-      const roomTxt = !ex.rooms || !ex.rooms.length ? "全部房型" : ex.rooms.join("、");
+      const roomTxt = (!ex.rooms || !ex.rooms.length || ex.rooms.length >= rooms.length) ? "全部房型" : ex.rooms.join("、");
       const valueTxt = ex.group === "redpacket" ? `满${ex.threshold}减${ex.amount}` : `${ex.pct}%`;
       return `<div class="extra-item">
         <div class="e-info">
@@ -1365,7 +1365,7 @@ const auth = (() => {
       return;
     }
     container.innerHTML = subsidies.map(s => {
-      const roomTxt = !s.rooms || !s.rooms.length ? "全部房型" : s.rooms.join("、");
+      const roomTxt = (!s.rooms || !s.rooms.length || s.rooms.length >= rooms.length) ? "全部房型" : s.rooms.join("、");
       return `<div class="extra-item">
         <div class="e-info">
           <div class="e-name">${s.name}（${s.pct}%）</div>
