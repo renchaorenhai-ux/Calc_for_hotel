@@ -520,6 +520,7 @@ window.__HOTEL = "qianyu";
   <div class="extra-entry">
     <button id="btnExtras">额外优惠</button>
     <button id="btnSubsidies">携程补贴</button>
+    <button id="btnFlash">特惠一口价</button>
   </div>
   <div class="history-section">
     <div class="history-title">
@@ -632,6 +633,25 @@ window.__HOTEL = "qianyu";
     <div class="modal-actions">
       <button class="btn-primary" id="subsidySave">保存</button>
       <button class="btn-cancel" onclick="auth.closeModal('modalSubsidyForm')">取消</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalFlash">
+  <div class="modal-member">
+    <button class="close-btn" onclick="auth.closeModal('modalFlash')">✖</button>
+    <h2>特惠一口价</h2>
+    <div class="extra-form">
+      <label class="modal-field-label">优惠名称</label>
+      <input type="text" value="特惠一口价" readonly style="color:var(--muted);" />
+      <label class="modal-field-label">优惠百分比（%）</label>
+      <input type="number" id="flashPctInp" min="0" max="100" step="0.01" placeholder="0" />
+      <label class="modal-field-label">应用于哪些房型（多选，默认全部）</label>
+      <div class="checkbox-wrap room-wrap" id="flashRoomsWrap"></div>
+      <div class="pw-error" id="flashFormError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="flashSave">保存</button>
+      <button class="btn-cancel" onclick="auth.closeModal('modalFlash')">取消</button>
     </div>
   </div>
 </div>
@@ -774,7 +794,7 @@ const auth = (() => {
   const MEMBER_OPTIONS_HTML = () =>
     MEMBER_TIERS.map(t => `<option value="${t.key}">${t.name}（${Math.round(t.discount * 100)}%）</option>`).join("");
   const loadRoomsFromStorage = () => safeStore.get(STORAGE_KEY, null);
-  const saveRoomsToStorage = () => { safeStore.set(STORAGE_KEY, rooms.map(r => ({ name: r.name, member: r.member }))); };
+  const saveRoomsToStorage = () => { safeStore.set(STORAGE_KEY, rooms.map(r => ({ name: r.name, member: r.member, flash: !!r.flash }))); };
   const defaultRooms = [
     { name: "全海景套房",   member: "gold" },
     { name: "全海景大床房",  member: "gold" },
@@ -794,16 +814,19 @@ const auth = (() => {
       const sr = savedRooms.find(s => s && typeof s === "object" && s.name === r.name);
       if (!sr) return;
       if (isValidTier(sr.member)) r.member = sr.member;
+      if (typeof sr.flash === "boolean") r.flash = sr.flash;
     });
   }
-  const DEFAULT_SETTINGS = { commissionPct: 15, pointsPct: 5 };
+  const DEFAULT_SETTINGS = { commissionPct: 15, pointsPct: 5, flashPct: 0 };
   const _rawSettings = safeStore.get(SETTINGS_KEY, null);
-  const settings = { commissionPct: DEFAULT_SETTINGS.commissionPct, pointsPct: DEFAULT_SETTINGS.pointsPct };
+  const settings = { commissionPct: DEFAULT_SETTINGS.commissionPct, pointsPct: DEFAULT_SETTINGS.pointsPct, flashPct: DEFAULT_SETTINGS.flashPct };
   if (_rawSettings && typeof _rawSettings === "object") {
     const cc = Number(_rawSettings.commissionPct);
     const pp = Number(_rawSettings.pointsPct);
+    const fp = Number(_rawSettings.flashPct);
     settings.commissionPct = (!isNaN(cc) && cc >= 0 && cc < 100) ? cc : DEFAULT_SETTINGS.commissionPct;
     settings.pointsPct = (!isNaN(pp) && pp >= 0 && pp <= 100) ? pp : DEFAULT_SETTINGS.pointsPct;
+    settings.flashPct = (!isNaN(fp) && fp >= 0 && fp <= 100) ? fp : DEFAULT_SETTINGS.flashPct;
   }
   const saveSettings = () => safeStore.set(SETTINGS_KEY, settings);
   const EXTRAS_KEY = STORAGE_KEY + "_extras";
@@ -875,7 +898,15 @@ const auth = (() => {
     const denom = 1 - d / 100;
     return denom <= 0 ? NaN : Math.round(t / denom * 100) / 100;
   };
+  const isFlash = (roomName) => {
+    const r = rooms.find(x => x.name === roomName);
+    return !!(r && r.flash);
+  };
   const calcBuyPcts = (roomName, memberKey) => {
+    if (isFlash(roomName)) {
+      const fp = Number(settings.flashPct) || 0;
+      return fp > 0 ? [fp] : [0];
+    }
     const pcts = [getTierDiscount(memberKey) * 100];
     if (extras.length) {
       const applicable = extras.filter(ex => extraAppliesTo(ex, roomName));
@@ -933,13 +964,13 @@ const auth = (() => {
   };
   const targetFromSell = (S, buyPcts) => {
     let T = S;
-    buyPcts.forEach(p => { T -= Math.round(S * p / 100); });
+    buyPcts.forEach(p => { T -= Math.ceil(S * p / 100); });
     return T;
   };
   const subsidyValueFromSell = (S, roomName) => {
     const sp = calcSubsidyPct(roomName);
     if (sp <= 0) return 0;
-    return Math.round(S * sp / 100);
+    return Math.ceil(S * sp / 100);
   };
   const customerPriceFromSell = (S, roomName, buyPcts) => {
     return targetFromSell(S, buyPcts) - subsidyValueFromSell(S, roomName);
@@ -950,7 +981,7 @@ const auth = (() => {
     const p = Number(pointsPct);
     if (isNaN(c) || c >= 100 || c < 0) return NaN;
     if (isNaN(p) || p < 0 || p > 100) return NaN;
-    const income = T * (1 - c / 100) - Math.round(S * p / 100);
+    const income = T * (1 - c / 100) - Math.ceil(S * p / 100);
     return Math.round(income * 100) / 100;
   };
   const solveSellFromCustomerPrice = (cp, roomName, memberKey) => {
@@ -1341,6 +1372,31 @@ const auth = (() => {
     renderSubsidyList();
     refreshAllRows();
     showToast(editingSubsidyId ? "补贴已更新" : "补贴已添加");
+  });
+  const openFlash = () => {
+    document.getElementById("flashFormError").textContent = "";
+    document.getElementById("flashPctInp").value = settings.flashPct || "";
+    document.getElementById("flashRoomsWrap").innerHTML = rooms.map(r =>
+      `<label><input type="checkbox" value="${r.name}" ${r.flash ? "checked" : ""}>${r.name}</label>`
+    ).join("");
+    openModal("modalFlash");
+  };
+  document.getElementById("btnFlash").addEventListener("click", openFlash);
+  document.getElementById("flashSave").addEventListener("click", () => {
+    const pct = Number(document.getElementById("flashPctInp").value);
+    if (document.getElementById("flashPctInp").value === "" || isNaN(pct) || pct < 0 || pct > 100) {
+      document.getElementById("flashFormError").textContent = "请输入有效的优惠百分比（0-100）";
+      return;
+    }
+    document.getElementById("flashFormError").textContent = "";
+    settings.flashPct = pct;
+    saveSettings();
+    const checked = Array.from(document.querySelectorAll("#flashRoomsWrap input:checked")).map(cb => cb.value);
+    rooms.forEach(r => { r.flash = checked.indexOf(r.name) !== -1; });
+    saveRoomsToStorage();
+    auth.closeModal("modalFlash");
+    refreshAllRows();
+    showToast("特惠一口价设置已保存");
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
