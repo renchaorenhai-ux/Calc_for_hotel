@@ -798,11 +798,6 @@ const auth = (() => {
   return api;
 })();
 (function() {
-  if (window.__HOTEL_OK !== true) {
-    var _gate = document.getElementById("hotelGate");
-    if (_gate) _gate.style.display = "flex";
-    return;
-  }
   const safeStore = {
     get(k, fb) { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : fb; } catch { return fb; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
