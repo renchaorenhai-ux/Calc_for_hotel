@@ -640,7 +640,7 @@ window.__HOTEL = "qianyu";
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalSubsidies')">✖</button>
     <h2>携程补贴</h2>
-    <div class="member-hint">管理携程平台替客户支付的补贴（叠加，按后台卖价计算，不影响酒店收入）</div>
+    <div class="member-hint">管理携程补贴（不影响预期收入）</div>
     <div class="extra-list" id="subsidyList"></div>
     <div class="modal-actions">
       <button class="btn-primary" id="subsidyAdd">+ 添加补贴</button>
@@ -671,6 +671,7 @@ window.__HOTEL = "qianyu";
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalFlash')">✖</button>
     <h2>特惠一口价</h2>
+    <div class="member-hint">特惠一口价覆盖优享会、基础促销组、场景促销组、充值类促销组（保留积分联盟、携程补贴、酒店红包）</div>
     <div class="extra-form">
       <label class="modal-field-label">优惠名称</label>
       <input type="text" value="特惠一口价" readonly style="color:var(--muted);" />
@@ -1315,7 +1316,7 @@ const auth = (() => {
   const openExtraForm = (ex) => {
     editingExtraId = ex ? ex.id : null;
     const isRp = currentPromoGroup === "redpacket";
-    document.getElementById("extraFormTitle").textContent = (ex ? "修改" : "添加") + PROMO_LABELS[currentPromoGroup];
+    document.getElementById("extraFormTitle").textContent = ex ? "修改优惠详情" : ("添加" + PROMO_LABELS[currentPromoGroup]);
     document.getElementById("extraFormError").textContent = "";
     document.getElementById("extraAmountLabel").textContent = isRp ? "红包名称" : "优惠名称";
     document.getElementById("extraName").value = ex ? ex.name : "";
