@@ -287,8 +287,13 @@ input[type="number"]::-webkit-outer-spin-button {
   margin-top: 24px;
   text-align: center;
 }
+.promo-row {
+  margin-bottom: 10px;
+  text-align: center;
+}
+.promo-row:last-child { margin-bottom: 0; }
 .extra-entry button {
-  padding: 9px 22px;
+  padding: 9px 18px;
   font-size: 14px;
   border: none;
   border-radius: 10px;
@@ -297,7 +302,7 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s;
-  margin: 0 6px;
+  margin: 0 5px;
 }
 .extra-entry button:hover { opacity: 0.85; }
 #btnSubsidies {
@@ -518,9 +523,17 @@ window.__HOTEL = "dayuxiaozhu";
   </table>
   </div>
   <div class="extra-entry">
-    <button id="btnExtras">额外优惠</button>
-    <button id="btnSubsidies">携程补贴</button>
-    <button id="btnFlash">特惠一口价</button>
+    <div class="promo-row">
+      <button id="btnBase">基础促销组</button>
+      <button id="btnScene">场景促销组</button>
+      <button id="btnRedpacket">酒店红包组</button>
+      <button id="btnRecharge">充值类促销组</button>
+      <button id="btnMemberBtn">优享会</button>
+    </div>
+    <div class="promo-row">
+      <button id="btnSubsidies">携程补贴</button>
+      <button id="btnFlash">特惠一口价</button>
+    </div>
   </div>
   <div class="history-section">
     <div class="history-title">
@@ -534,7 +547,7 @@ window.__HOTEL = "dayuxiaozhu";
     ·
     <span id="btnPoints">张成前开发</span>
     ·
-    <span id="btnMember">2026-7-4</span>
+    <span id="btnYunti">2026.8.14</span>
   </p>
 </div>
 <div class="modal-overlay" id="modalCommission">
@@ -570,14 +583,26 @@ window.__HOTEL = "dayuxiaozhu";
     </div>
   </div>
 </div>
+<div class="modal-overlay" id="modalYunti">
+  <div class="modal-small">
+    <button class="close-btn" onclick="auth.closeModal('modalYunti')">✖</button>
+    <h2>云梯设置</h2>
+    <div class="member-hint">云梯≈另一积分联盟，作用在实付价与预期收入之间（基于目标价扣佣后）</div>
+    <label class="modal-field-label">云梯百分比</label>
+    <input type="number" id="yuntiPct" min="0" max="100" step="0.01" placeholder="0" />
+    <div class="modal-actions">
+      <button class="btn-primary" id="yuntiDone">确认</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modalExtras">
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalExtras')">✖</button>
-    <h2>额外优惠</h2>
-    <div class="member-hint">管理各房型适用的额外优惠（叠加 / 择优 / 房型范围）</div>
+    <h2 id="extrasTitle">促销管理</h2>
+    <div class="member-hint">同组内择优取最高，跨组可叠加</div>
     <div class="extra-list" id="extraList"></div>
     <div class="modal-actions">
-      <button class="btn-primary" id="extraAdd">+ 添加优惠</button>
+      <button class="btn-primary" id="extraAdd">+ 添加</button>
       <button class="btn-cancel" onclick="auth.closeModal('modalExtras')">完成</button>
     </div>
   </div>
@@ -585,16 +610,22 @@ window.__HOTEL = "dayuxiaozhu";
 <div class="modal-overlay" id="modalExtraForm">
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalExtraForm')">✖</button>
-    <h2 id="extraFormTitle">添加优惠</h2>
+    <h2 id="extraFormTitle">添加</h2>
     <div class="extra-form">
-      <label class="modal-field-label">优惠名称</label>
-      <input type="text" id="extraName" placeholder="请输入优惠名称" />
-      <label class="modal-field-label">优惠百分比（%）</label>
-      <input type="number" id="extraPct" min="0" step="0.01" placeholder="0" />
-      <label class="modal-field-label">与哪些优惠叠加（多选，至少选一个）</label>
-      <div class="checkbox-wrap" id="extraStackWrap"></div>
-      <label class="modal-field-label">与哪些优惠择优（多选，可留空）</label>
-      <div class="checkbox-wrap" id="extraBestWrap"></div>
+      <label class="modal-field-label" id="extraAmountLabel">优惠名称</label>
+      <input type="text" id="extraName" placeholder="请输入名称" />
+      <!-- 百分比优惠字段（base/scene/recharge） -->
+      <div id="extraPctField">
+        <label class="modal-field-label">优惠百分比（%）</label>
+        <input type="number" id="extraPct" min="0" step="0.01" placeholder="0" />
+      </div>
+      <!-- 红包字段（redpacket）：满X减Y -->
+      <div id="extraRpField" style="display:none">
+        <label class="modal-field-label">减免金额 Y（元）</label>
+        <input type="number" id="extraRpAmount" min="0" step="0.01" placeholder="0" />
+        <label class="modal-field-label">满减门槛 X（元，基于目标价T）</label>
+        <input type="number" id="extraRpThreshold" min="0" step="0.01" placeholder="0" />
+      </div>
       <label class="modal-field-label">应用于哪些房型（多选，默认全部）</label>
       <div class="checkbox-wrap room-wrap" id="extraRoomsWrap"></div>
       <div class="pw-error" id="extraFormError"></div>
@@ -811,31 +842,70 @@ const auth = (() => {
       if (typeof sr.flash === "boolean") r.flash = sr.flash;
     });
   }
-  const DEFAULT_SETTINGS = { commissionPct: 15, pointsPct: 5, flashPct: 0 };
+  const DEFAULT_SETTINGS = { commissionPct: 0, pointsPct: 0, flashPct: 0, yuntiPct: 0 };
   const _rawSettings = safeStore.get(SETTINGS_KEY, null);
-  const settings = { commissionPct: DEFAULT_SETTINGS.commissionPct, pointsPct: DEFAULT_SETTINGS.pointsPct, flashPct: DEFAULT_SETTINGS.flashPct };
+  const settings = { commissionPct: DEFAULT_SETTINGS.commissionPct, pointsPct: DEFAULT_SETTINGS.pointsPct, flashPct: DEFAULT_SETTINGS.flashPct, yuntiPct: DEFAULT_SETTINGS.yuntiPct };
   if (_rawSettings && typeof _rawSettings === "object") {
     const cc = Number(_rawSettings.commissionPct);
     const pp = Number(_rawSettings.pointsPct);
     const fp = Number(_rawSettings.flashPct);
+    const yp = Number(_rawSettings.yuntiPct);
     settings.commissionPct = (!isNaN(cc) && cc >= 0 && cc < 100) ? cc : DEFAULT_SETTINGS.commissionPct;
     settings.pointsPct = (!isNaN(pp) && pp >= 0 && pp <= 100) ? pp : DEFAULT_SETTINGS.pointsPct;
     settings.flashPct = (!isNaN(fp) && fp >= 0 && fp <= 1) ? fp : DEFAULT_SETTINGS.flashPct;
+    settings.yuntiPct = (!isNaN(yp) && yp >= 0 && yp <= 100) ? yp : DEFAULT_SETTINGS.yuntiPct;
   }
   const saveSettings = () => safeStore.set(SETTINGS_KEY, settings);
   const EXTRAS_KEY = STORAGE_KEY + "_extras";
-  const rawExtras = safeStore.get(EXTRAS_KEY, []);
-  let extras = (Array.isArray(rawExtras) ? rawExtras : []).filter(x => x && typeof x === "object" && x.id).map(ex => {
-    const p = Number(ex.pct);
-    return {
+  const validGroups = ["base", "scene", "recharge", "redpacket"];
+  const DEFAULT_PROMOS = [
+    { name: "天天特价", pct: 0, group: "base" },
+    { name: "节日全覆盖", pct: 0, group: "base" },
+    { name: "错峰全覆盖", pct: 0, group: "base" },
+    { name: "时令全覆盖", pct: 0, group: "base" },
+    { name: "超级周边游", pct: 0, group: "base" },
+    { name: "超级上新日", pct: 0, group: "base" },
+    { name: "开业特惠", pct: 0, group: "base" },
+    { name: "提前预订", pct: 0, group: "scene" },
+    { name: "连住优惠", pct: 0, group: "scene" },
+    { name: "今夜甩卖", pct: 0, group: "scene" },
+    { name: "限时抢购", pct: 0, group: "scene" },
+    { name: "钟点房促销", pct: 0, group: "scene" },
+    { name: "多间/多日立减", pct: 0, group: "scene" },
+    { name: "门店新客", pct: 0, group: "scene" },
+    { name: "出行特惠", pct: 0, group: "scene" },
+    { name: "学生专享", pct: 0, group: "scene" },
+    { name: "本地特惠红包", amount: 0, threshold: 0, group: "redpacket" },
+    { name: "意向挽留红包", amount: 0, threshold: 0, group: "redpacket" },
+    { name: "动态返现", pct: 0, group: "recharge" },
+    { name: "智选特惠", pct: 0, group: "recharge" },
+  ];
+  const normExtras = (list) => (Array.isArray(list) ? list : []).filter(x => x && typeof x === "object" && x.id).map(ex => {
+    const g = validGroups.indexOf(ex.group) !== -1 ? ex.group : "base";
+    const base = {
       id: String(ex.id),
       name: typeof ex.name === "string" ? ex.name : "未命名优惠",
-      pct: (isNaN(p) || p < 0 || p > 100) ? 0 : p,
-      stackWith: Array.isArray(ex.stackWith) ? ex.stackWith.filter(s => typeof s === "string") : [],
-      bestWith: Array.isArray(ex.bestWith) ? ex.bestWith.filter(s => typeof s === "string") : [],
+      group: g,
       rooms: Array.isArray(ex.rooms) ? ex.rooms.filter(s => typeof s === "string") : []
     };
+    if (g === "redpacket") {
+      const y = Number(ex.amount);
+      const x = Number(ex.threshold);
+      base.amount = (isNaN(y) || y < 0) ? 0 : y;
+      base.threshold = (isNaN(x) || x < 0) ? 0 : x;
+    } else {
+      const p = Number(ex.pct);
+      base.pct = (isNaN(p) || p < 0 || p > 100) ? 0 : p;
+    }
+    return base;
   });
+  const _savedExtras = safeStore.get(EXTRAS_KEY, null);
+  let extras;
+  if (_savedExtras === null) {
+    extras = DEFAULT_PROMOS.map((d, i) => ({ id: "d" + i, name: d.name, group: d.group, rooms: [], ...(d.group === "redpacket" ? { amount: d.amount, threshold: d.threshold } : { pct: d.pct }) }));
+  } else {
+    extras = normExtras(_savedExtras);
+  }
   const saveExtras = () => safeStore.set(EXTRAS_KEY, extras);
   const genId = () => "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const extraAppliesTo = (ex, roomName) => !ex.rooms || ex.rooms.length === 0 || ex.rooms.indexOf(roomName) !== -1;
@@ -896,6 +966,17 @@ const auth = (() => {
     const r = rooms.find(x => x.name === roomName);
     return !!(r && r.flash);
   };
+  const PROMO_GROUPS = ["base", "scene", "recharge"];
+  const applicablePromos = (roomName) => extras.filter(ex => ex.group !== "redpacket" && extraAppliesTo(ex, roomName));
+  const redpacketValueFromT = (T, roomName) => {
+    const rps = extras.filter(ex => ex.group === "redpacket" && extraAppliesTo(ex, roomName));
+    if (!rps.length) return 0;
+    let best = 0;
+    rps.forEach(ex => {
+      if (T >= (ex.threshold || 0) && (ex.amount || 0) > best) best = ex.amount;
+    });
+    return best;
+  };
   const calcBuyPcts = (roomName, memberKey) => {
     if (isFlash(roomName)) {
       const coef = Number(settings.flashPct) || 0;
@@ -903,85 +984,48 @@ const auth = (() => {
       return fp > 0 ? [fp] : [0];
     }
     const pcts = [getTierDiscount(memberKey) * 100];
-    if (extras.length) {
-      const applicable = extras.filter(ex => extraAppliesTo(ex, roomName));
-      const idToEx = {};
-      applicable.forEach(ex => { idToEx[ex.id] = ex; });
-      const bestAdj = {};
-      applicable.forEach(ex => {
-        (ex.bestWith || []).forEach(bid => {
-          if (!idToEx[bid]) return;
-          if (!bestAdj[ex.id]) bestAdj[ex.id] = new Set();
-          if (!bestAdj[bid]) bestAdj[bid] = new Set();
-          bestAdj[ex.id].add(bid);
-          bestAdj[bid].add(ex.id);
-        });
-      });
-      const visited = new Set();
-      const groups = [];
-      applicable.forEach(ex => {
-        if (visited.has(ex.id)) return;
-        const comp = [];
-        const queue = [ex.id];
-        visited.add(ex.id);
-        while (queue.length) {
-          const cur = queue.shift();
-          comp.push(cur);
-          ((bestAdj[cur]) || []).forEach(nb => {
-            if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
-          });
-        }
-        groups.push(comp);
-      });
-      groups.forEach(comp => {
-        if (comp.length === 1) {
-          const ex = idToEx[comp[0]];
-          if (!(ex.bestWith && ex.bestWith.length)) {
-            pcts.push(Number(ex.pct) || 0);
-          } else {
-            pcts.push(Number(ex.pct) || 0);
-          }
-        } else {
-          let best = 0;
-          comp.forEach(id => {
-            const ex = idToEx[id];
-            const p = Number(ex.pct) || 0;
-            if (p > best) best = p;
-          });
-          pcts.push(best);
-        }
-      });
-    }
+    const applicable = applicablePromos(roomName);
+    PROMO_GROUPS.forEach(grp => {
+      const inGrp = applicable.filter(ex => ex.group === grp);
+      if (!inGrp.length) return;
+      let best = 0;
+      inGrp.forEach(ex => { const p = Number(ex.pct) || 0; if (p > best) best = p; });
+      pcts.push(best);
+    });
     return pcts;
   };
   const calcExtraDiscount = (roomName) => {
     const buy = calcBuyPcts(roomName, "gold");
     return buy.length > 1 ? buy.slice(1).reduce((a, b) => a + b, 0) : 0;
   };
-  const targetFromSell = (S, buyPcts) => {
+  const targetFromSell = (S, buyPcts, roomName) => {
     let T = S;
     buyPcts.forEach(p => { T -= Math.ceil(S * p / 100); });
+    if (roomName) T -= redpacketValueFromT(T, roomName);
     return T;
   };
   const subsidyValueFromSell = (S, roomName, buyPcts) => {
     const sp = calcSubsidyPct(roomName);
     if (sp <= 0) return 0;
     if (isFlash(roomName)) {
-      const T = targetFromSell(S, buyPcts);
+      const T = targetFromSell(S, buyPcts, roomName);
       return Math.ceil(T * sp / 100);
     }
     return Math.ceil(S * sp / 100);
   };
   const customerPriceFromSell = (S, roomName, buyPcts) => {
-    return targetFromSell(S, buyPcts) - subsidyValueFromSell(S, roomName, buyPcts);
+    return targetFromSell(S, buyPcts, roomName) - subsidyValueFromSell(S, roomName, buyPcts);
   };
-  const incomeFromSell = (S, roomName, buyPcts, commissionPct, pointsPct) => {
-    const T = targetFromSell(S, buyPcts);
+  const incomeFromSell = (S, roomName, buyPcts, commissionPct, pointsPct, yuntiPct) => {
+    const T = targetFromSell(S, buyPcts, roomName);
     const c = Number(commissionPct);
     const p = Number(pointsPct);
+    const y = Number(yuntiPct);
     if (isNaN(c) || c >= 100 || c < 0) return NaN;
     if (isNaN(p) || p < 0 || p > 100) return NaN;
-    const income = T * (1 - c / 100) - Math.ceil(S * p / 100);
+    if (isNaN(y) || y < 0 || y > 100) return NaN;
+    const base = T * (1 - c / 100);
+    const income = base - Math.ceil(base * p / 100) - Math.ceil(base * y / 100);
     return Math.round(income * 100) / 100;
   };
   const solveSellFromCustomerPrice = (cp, roomName, memberKey) => {
@@ -1012,7 +1056,7 @@ const auth = (() => {
     const c = Number(commissionPct), p = Number(pointsPct);
     if (isNaN(c) || c >= 100 || c < 0) return NaN;
     if (isNaN(p) || p < 0 || p > 100) return NaN;
-    const f = (S) => incomeFromSell(S, roomName, buyPcts, c, p);
+    const f = (S) => incomeFromSell(S, roomName, buyPcts, c, p, settings.yuntiPct);
     let lo = 0, hi = Math.max(inc, 1) * 5;
     while (f(hi) < inc && hi < PRICE_MAX * 2) hi *= 2;
     for (let i = 0; i < 60; i++) {
@@ -1068,7 +1112,7 @@ const auth = (() => {
     }
     const buyPcts = calcBuyPcts(room.name, room.member);
     const customer = customerPriceFromSell(S, room.name, buyPcts);
-    const income = incomeFromSell(S, room.name, buyPcts, settings.commissionPct, settings.pointsPct);
+    const income = incomeFromSell(S, room.name, buyPcts, settings.commissionPct, settings.pointsPct, settings.yuntiPct);
     sellEl.textContent = String(Math.round(S));
     setVal(cInp, isNaN(customer) ? "" : String(Math.round(customer)));
     setVal(iInp, isNaN(income) ? "" : (Math.round(income * 100) / 100).toFixed(2));
@@ -1111,6 +1155,7 @@ const auth = (() => {
   };
   const commissionInp = document.getElementById("commissionPct");
   const pointsInp = document.getElementById("pointsPct");
+  const yuntiInp = document.getElementById("yuntiPct");
   const openCommission = () => {
     commissionInp.value = settings.commissionPct;
     openModal("modalCommission");
@@ -1138,6 +1183,20 @@ const auth = (() => {
   document.getElementById("pointsDone").addEventListener("click", () => {
     auth.closeModal("modalPoints");
     addHistory({ type: "修改积分联盟", summary: `积分联盟：${settings.pointsPct}%` });
+  });
+  const openYunti = () => {
+    yuntiInp.value = settings.yuntiPct;
+    openModal("modalYunti");
+  };
+  yuntiInp.addEventListener("input", () => {
+    const n = Number(yuntiInp.value);
+    settings.yuntiPct = (yuntiInp.value !== "" && !isNaN(n) && n >= 0 && n <= 100) ? n : 0;
+    saveSettings();
+    refreshAllRows();
+  });
+  document.getElementById("yuntiDone").addEventListener("click", () => {
+    auth.closeModal("modalYunti");
+    addHistory({ type: "修改云梯", summary: `云梯：${settings.yuntiPct}%` });
   });
   const buildMemberList = () => {
     const container = document.getElementById("memberList");
@@ -1172,31 +1231,34 @@ const auth = (() => {
   document.getElementById("btnPoints").addEventListener("click", () => {
     auth.requireAuth(openPoints);
   });
-  document.getElementById("btnMember").addEventListener("click", () => {
+  document.getElementById("btnMemberBtn").addEventListener("click", () => {
     auth.requireAuth(openMember);
   });
-  const FIXED_STACK_LABELS = { "__member__": "会员优惠" };
+  document.getElementById("btnYunti").addEventListener("click", () => {
+    auth.requireAuth(openYunti);
+  });
+  let currentPromoGroup = "base";
+  const PROMO_LABELS = { base: "基础促销组", scene: "场景促销组", redpacket: "酒店红包组", recharge: "充值类促销组" };
+  const promoButtons = [
+    ["btnBase", "base"],
+    ["btnScene", "scene"],
+    ["btnRedpacket", "redpacket"],
+    ["btnRecharge", "recharge"]
+  ];
   const renderExtraList = () => {
     const container = document.getElementById("extraList");
-    if (!extras.length) {
-      container.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);">暂无额外优惠，点击下方「添加优惠」创建</div>';
+    const list = extras.filter(ex => ex.group === currentPromoGroup);
+    if (!list.length) {
+      container.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);">暂无促销，点击下方「添加」创建</div>';
       return;
     }
-    container.innerHTML = extras.map(ex => {
+    container.innerHTML = list.map(ex => {
       const roomTxt = !ex.rooms || !ex.rooms.length ? "全部房型" : ex.rooms.join("、");
-      const stackTxt = (ex.stackWith || []).map(id => {
-        if (FIXED_STACK_LABELS[id]) return FIXED_STACK_LABELS[id];
-        const t = extras.find(x => x.id === id);
-        return t ? t.name : id;
-      }).join("、") || "无";
-      const bestTxt = (ex.bestWith || []).map(id => {
-        const t = extras.find(x => x.id === id);
-        return t ? t.name : id;
-      }).join("、") || "无";
+      const valueTxt = ex.group === "redpacket" ? `满${ex.threshold}减${ex.amount}` : `${ex.pct}%`;
       return `<div class="extra-item">
         <div class="e-info">
-          <div class="e-name">${ex.name}（${ex.pct}%）</div>
-          <div class="e-meta">房型：${roomTxt} ｜ 叠加：${stackTxt} ｜ 择优：${bestTxt}</div>
+          <div class="e-name">${ex.name}（${valueTxt}）</div>
+          <div class="e-meta">房型：${roomTxt}</div>
         </div>
         <div class="e-actions">
           <button class="e-edit" data-edit="${ex.id}">修改</button>
@@ -1205,9 +1267,13 @@ const auth = (() => {
       </div>`;
     }).join("");
   };
-  document.getElementById("btnExtras").addEventListener("click", () => {
-    renderExtraList();
-    openModal("modalExtras");
+  promoButtons.forEach(([id, grp]) => {
+    document.getElementById(id).addEventListener("click", () => {
+      currentPromoGroup = grp;
+      document.getElementById("extrasTitle").textContent = PROMO_LABELS[grp];
+      renderExtraList();
+      openModal("modalExtras");
+    });
   });
   document.getElementById("extraAdd").addEventListener("click", () => openExtraForm(null));
   document.getElementById("extraList").addEventListener("click", (e) => {
@@ -1218,44 +1284,28 @@ const auth = (() => {
       if (ex) openExtraForm(ex);
     } else if (delBtn) {
       const id = delBtn.dataset.del;
-      if (confirm("确定删除该优惠吗？此操作不可撤销。")) {
+      if (confirm("确定删除该促销吗？此操作不可撤销。")) {
         extras = extras.filter(x => x.id !== id);
-        extras.forEach(x => {
-          if (x.stackWith) x.stackWith = x.stackWith.filter(s => s !== id);
-          if (x.bestWith) x.bestWith = x.bestWith.filter(s => s !== id);
-        });
         saveExtras();
         renderExtraList();
         refreshAllRows();
-        showToast("优惠已删除");
+        showToast("促销已删除");
       }
     }
   });
   let editingExtraId = null;
   const openExtraForm = (ex) => {
     editingExtraId = ex ? ex.id : null;
-    document.getElementById("extraFormTitle").textContent = ex ? "修改优惠" : "添加优惠";
+    const isRp = currentPromoGroup === "redpacket";
+    document.getElementById("extraFormTitle").textContent = (ex ? "修改" : "添加") + PROMO_LABELS[currentPromoGroup];
     document.getElementById("extraFormError").textContent = "";
+    document.getElementById("extraAmountLabel").textContent = isRp ? "红包名称" : "优惠名称";
     document.getElementById("extraName").value = ex ? ex.name : "";
-    document.getElementById("extraPct").value = ex ? ex.pct : "";
-    const others = extras.filter(x => x.id !== (ex ? ex.id : null));
-    const otherOptions = others.length
-      ? others.map(o => `<label><input type="checkbox" value="${o.id}">${o.name}（${o.pct}%）</label>`).join("")
-      : "";
-    const fixedStackOptions =
-      `<label><input type="checkbox" value="__member__" checked disabled>会员优惠</label>`;
-    document.getElementById("extraStackWrap").innerHTML =
-      `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">默认不勾选任何优惠</div>` +
-      fixedStackOptions + otherOptions;
-    document.getElementById("extraBestWrap").innerHTML =
-      `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">默认不勾选任何优惠</div>` +
-      (otherOptions || '<div style="color:var(--muted);font-size:12px;">暂无其他优惠</div>');
-    document.querySelectorAll("#extraStackWrap input[type=checkbox]").forEach(cb => {
-      if (ex && (ex.stackWith || []).indexOf(cb.value) !== -1) cb.checked = true;
-    });
-    document.querySelectorAll("#extraBestWrap input[type=checkbox]").forEach(cb => {
-      if (ex && (ex.bestWith || []).indexOf(cb.value) !== -1) cb.checked = true;
-    });
+    document.getElementById("extraPctField").style.display = isRp ? "none" : "block";
+    document.getElementById("extraRpField").style.display = isRp ? "block" : "none";
+    document.getElementById("extraPct").value = (ex && !isRp) ? ex.pct : "";
+    document.getElementById("extraRpAmount").value = (ex && isRp) ? ex.amount : "";
+    document.getElementById("extraRpThreshold").value = (ex && isRp) ? ex.threshold : "";
     document.getElementById("extraRoomsWrap").innerHTML = rooms.map(r =>
       `<label><input type="checkbox" value="${r.name}" ${(!ex || !ex.rooms || !ex.rooms.length) ? "checked" : (ex.rooms.indexOf(r.name) !== -1 ? "checked" : "")}>${r.name}</label>`
     ).join("");
@@ -1263,42 +1313,35 @@ const auth = (() => {
   };
   document.getElementById("extraSave").addEventListener("click", () => {
     const name = document.getElementById("extraName").value.trim();
-    const pct = Number(document.getElementById("extraPct").value);
-    const stackIds = Array.from(new Set([
-      "__member__",
-      ...Array.from(document.querySelectorAll("#extraStackWrap input:checked")).map(cb => cb.value)
-    ]));
-    const bestIds = Array.from(document.querySelectorAll("#extraBestWrap input:checked")).map(cb => cb.value);
     const roomIds = Array.from(document.querySelectorAll("#extraRoomsWrap input:checked")).map(cb => cb.value);
-    if (!name) { document.getElementById("extraFormError").textContent = "请输入优惠名称"; return; }
-    if (isNaN(pct) || pct < 0 || pct > 100) { document.getElementById("extraFormError").textContent = "请输入有效的优惠百分比（0-100）"; return; }
-    if (stackIds.length === 0) {
-      document.getElementById("extraFormError").textContent = "请设置该优惠与哪些优惠叠加" + (bestIds.length === 0 ? "/择优" : "");
-      return;
-    }
-    const overlap = stackIds.filter(id => bestIds.indexOf(id) !== -1);
-    if (overlap.length) {
-      document.getElementById("extraFormError").textContent = "不能与同一优惠既叠加又择优，请检查勾选";
-      return;
-    }
     document.getElementById("extraFormError").textContent = "";
-    if (editingExtraId) {
-      const ex = extras.find(x => x.id === editingExtraId);
-      if (ex) {
-        ex.name = name;
-        ex.pct = pct;
-        ex.stackWith = stackIds;
-        ex.bestWith = bestIds;
-        ex.rooms = roomIds;
+    if (!name) { document.getElementById("extraFormError").textContent = "请输入名称"; return; }
+    if (currentPromoGroup === "redpacket") {
+      const y = Number(document.getElementById("extraRpAmount").value);
+      const x = Number(document.getElementById("extraRpThreshold").value);
+      if (isNaN(y) || y < 0) { document.getElementById("extraFormError").textContent = "请输入有效的减免金额 Y"; return; }
+      if (isNaN(x) || x < 0) { document.getElementById("extraFormError").textContent = "请输入有效的满减门槛 X"; return; }
+      if (editingExtraId) {
+        const ex = extras.find(v => v.id === editingExtraId);
+        if (ex) { ex.name = name; ex.amount = y; ex.threshold = x; ex.rooms = roomIds; }
+      } else {
+        extras.push({ id: genId(), name, group: "redpacket", amount: y, threshold: x, rooms: roomIds });
       }
     } else {
-      extras.push({ id: genId(), name, pct, stackWith: stackIds, bestWith: bestIds, rooms: roomIds });
+      const pct = Number(document.getElementById("extraPct").value);
+      if (isNaN(pct) || pct < 0 || pct > 100) { document.getElementById("extraFormError").textContent = "请输入有效的优惠百分比（0-100）"; return; }
+      if (editingExtraId) {
+        const ex = extras.find(v => v.id === editingExtraId);
+        if (ex) { ex.name = name; ex.pct = pct; ex.rooms = roomIds; }
+      } else {
+        extras.push({ id: genId(), name, pct, group: currentPromoGroup, rooms: roomIds });
+      }
     }
     saveExtras();
     auth.closeModal("modalExtraForm");
     renderExtraList();
     refreshAllRows();
-    showToast(editingExtraId ? "优惠已更新" : "优惠已添加");
+    showToast(editingExtraId ? "促销已更新" : "促销已添加");
   });
   const renderSubsidyList = () => {
     const container = document.getElementById("subsidyList");
