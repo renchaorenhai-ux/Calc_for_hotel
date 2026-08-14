@@ -1248,9 +1248,7 @@ const auth = (() => {
   document.getElementById("btnPoints").addEventListener("click", () => {
     auth.requireAuth(openPoints);
   });
-  document.getElementById("btnMemberBtn").addEventListener("click", () => {
-    auth.requireAuth(openMember);
-  });
+  document.getElementById("btnMemberBtn").addEventListener("click", openMember);
   document.getElementById("btnYunti").addEventListener("click", () => {
     auth.requireAuth(openYunti);
   });
