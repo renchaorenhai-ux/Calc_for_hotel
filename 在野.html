@@ -643,8 +643,8 @@ window.__HOTEL = "zaiye";
     <div class="extra-form">
       <label class="modal-field-label">优惠名称</label>
       <input type="text" value="特惠一口价" readonly style="color:var(--muted);" />
-      <label class="modal-field-label">优惠百分比（%）</label>
-      <input type="number" id="flashPctInp" min="0" max="100" step="0.01" placeholder="0" />
+      <label class="modal-field-label">折扣系数（0-1，如 0.685）</label>
+      <input type="number" id="flashPctInp" min="0" max="1" step="0.001" placeholder="0.685" />
       <label class="modal-field-label">应用于哪些房型（多选，默认全部）</label>
       <div class="checkbox-wrap room-wrap" id="flashRoomsWrap"></div>
       <div class="pw-error" id="flashFormError"></div>
@@ -824,7 +824,7 @@ const auth = (() => {
     const fp = Number(_rawSettings.flashPct);
     settings.commissionPct = (!isNaN(cc) && cc >= 0 && cc < 100) ? cc : DEFAULT_SETTINGS.commissionPct;
     settings.pointsPct = (!isNaN(pp) && pp >= 0 && pp <= 100) ? pp : DEFAULT_SETTINGS.pointsPct;
-    settings.flashPct = (!isNaN(fp) && fp >= 0 && fp <= 100) ? fp : DEFAULT_SETTINGS.flashPct;
+    settings.flashPct = (!isNaN(fp) && fp >= 0 && fp <= 1) ? fp : DEFAULT_SETTINGS.flashPct;
   }
   const saveSettings = () => safeStore.set(SETTINGS_KEY, settings);
   const EXTRAS_KEY = STORAGE_KEY + "_extras";
@@ -902,7 +902,8 @@ const auth = (() => {
   };
   const calcBuyPcts = (roomName, memberKey) => {
     if (isFlash(roomName)) {
-      const fp = Number(settings.flashPct) || 0;
+      const coef = Number(settings.flashPct) || 0;
+      const fp = (1 - coef) * 100;
       return fp > 0 ? [fp] : [0];
     }
     const pcts = [getTierDiscount(memberKey) * 100];
@@ -1382,8 +1383,8 @@ const auth = (() => {
   document.getElementById("btnFlash").addEventListener("click", openFlash);
   document.getElementById("flashSave").addEventListener("click", () => {
     const pct = Number(document.getElementById("flashPctInp").value);
-    if (document.getElementById("flashPctInp").value === "" || isNaN(pct) || pct < 0 || pct > 100) {
-      document.getElementById("flashFormError").textContent = "请输入有效的优惠百分比（0-100）";
+    if (document.getElementById("flashPctInp").value === "" || isNaN(pct) || pct <= 0 || pct >= 1) {
+      document.getElementById("flashFormError").textContent = "请输入有效的折扣系数（0-1，不含0和1）";
       return;
     }
     document.getElementById("flashFormError").textContent = "";
