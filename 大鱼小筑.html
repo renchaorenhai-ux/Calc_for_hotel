@@ -810,6 +810,19 @@ const auth = (() => {
   };
   const STORAGE_KEY = "dayuxiaozhu_rooms_data";
   const SETTINGS_KEY = STORAGE_KEY + "_settings";
+  const DATA_VERSION = 2;
+  const VERSION_KEY = STORAGE_KEY + "_version";
+  const _storedVersion = Number(safeStore.get(VERSION_KEY, 0)) || 0;
+  if (_storedVersion < DATA_VERSION) {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+      localStorage.removeItem(STORAGE_KEY + "_extras");
+      localStorage.removeItem(STORAGE_KEY + "_subsidies");
+      localStorage.removeItem(STORAGE_KEY + "_history");
+    } catch {}
+    safeStore.set(VERSION_KEY, DATA_VERSION);
+  }
   const MEMBER_TIERS = [
     { key: "silver",  name: "白银贵宾",      discount: 0.05 },
     { key: "gold",    name: "黄金贵宾",      discount: 0.10 },
