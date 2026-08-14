@@ -919,13 +919,14 @@ const auth = (() => {
   const _savedExtras = safeStore.get(EXTRAS_KEY, null);
   let extras;
   if (_savedExtras === null) {
-    extras = DEFAULT_PROMOS.map((d, i) => ({ id: "d" + i, name: d.name, group: d.group, rooms: [], ...(d.group === "redpacket" ? { amount: d.amount, threshold: d.threshold } : { pct: d.pct }) }));
+    const allRoomNames = rooms.map(r => r.name);
+    extras = DEFAULT_PROMOS.map((d, i) => ({ id: "d" + i, name: d.name, group: d.group, rooms: allRoomNames.slice(), ...(d.group === "redpacket" ? { amount: d.amount, threshold: d.threshold } : { pct: d.pct }) }));
   } else {
     extras = normExtras(_savedExtras);
   }
   const saveExtras = () => safeStore.set(EXTRAS_KEY, extras);
   const genId = () => "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const extraAppliesTo = (ex, roomName) => !ex.rooms || ex.rooms.length === 0 || ex.rooms.indexOf(roomName) !== -1;
+  const extraAppliesTo = (ex, roomName) => Array.isArray(ex.rooms) && ex.rooms.indexOf(roomName) !== -1;
   const SUBSIDIES_KEY = STORAGE_KEY + "_subsidies";
   const rawSubsidies = safeStore.get(SUBSIDIES_KEY, []);
   let subsidies = (Array.isArray(rawSubsidies) ? rawSubsidies : []).filter(x => x && typeof x === "object" && x.id).map(s => {
@@ -938,7 +939,7 @@ const auth = (() => {
     };
   });
   const saveSubsidies = () => safeStore.set(SUBSIDIES_KEY, subsidies);
-  const subsidyAppliesTo = (s, roomName) => !s.rooms || s.rooms.length === 0 || s.rooms.indexOf(roomName) !== -1;
+  const subsidyAppliesTo = (s, roomName) => Array.isArray(s.rooms) && s.rooms.indexOf(roomName) !== -1;
   const calcSubsidyPct = (roomName) => {
     if (!subsidies.length) return 0;
     return subsidies.reduce((sum, s) => sum + (subsidyAppliesTo(s, roomName) ? (Number(s.pct) || 0) : 0), 0);
