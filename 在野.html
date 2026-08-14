@@ -946,10 +946,11 @@ const auth = (() => {
             pcts.push(Number(ex.pct) || 0);
           }
         } else {
-          let best = null;
+          let best = 0;
           comp.forEach(id => {
             const ex = idToEx[id];
-            if (!best || (Number(ex.pct) || 0) > best.pct) best = Number(ex.pct) || 0;
+            const p = Number(ex.pct) || 0;
+            if (p > best) best = p;
           });
           pcts.push(best);
         }
