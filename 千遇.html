@@ -971,13 +971,6 @@ const auth = (() => {
       showToast("历史记录已清空");
     }
   });
-  const calcSellPrice = (target, totalDiscountPct) => {
-    const t = Number(target);
-    const d = Number(totalDiscountPct);
-    if (isNaN(t) || t < 0 || isNaN(d) || d >= 100 || d < 0) return NaN;
-    const denom = 1 - d / 100;
-    return denom <= 0 ? NaN : Math.round(t / denom * 100) / 100;
-  };
   const isFlash = (roomName) => {
     const r = rooms.find(x => x.name === roomName);
     return !!(r && r.flash);
@@ -1009,10 +1002,6 @@ const auth = (() => {
       pcts.push(best);
     });
     return pcts;
-  };
-  const calcExtraDiscount = (roomName) => {
-    const buy = calcBuyPcts(roomName, "gold");
-    return buy.length > 1 ? buy.slice(1).reduce((a, b) => a + b, 0) : 0;
   };
   const targetFromSell = (S, buyPcts, roomName) => {
     let T = S;
