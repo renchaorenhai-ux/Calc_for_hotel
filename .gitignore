@@ -1,1 +1,6 @@
 .DS_Store
+build_all.py
+hotel_config.json
+README.md
+index.html
+Launcher_*.html
