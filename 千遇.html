@@ -576,7 +576,7 @@ window.__HOTEL = "qianyu";
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalMember')">✖</button>
     <h2>会员级别设置</h2>
-    <div class="member-hint">为各房型选择会员级别，用于计算应填卖价（优惠百分比为固定配置）</div>
+    <div class="member-hint">为各房型选择对应的会员级别</div>
     <div class="member-list" id="memberList"></div>
     <div class="modal-actions">
       <button class="btn-primary" id="memberDone">完成</button>
@@ -587,7 +587,6 @@ window.__HOTEL = "qianyu";
   <div class="modal-small">
     <button class="close-btn" onclick="auth.closeModal('modalYunti')">✖</button>
     <h2>云梯设置</h2>
-    <div class="member-hint">云梯≈另一积分联盟，作用在实付价与预期收入之间（基于目标价扣佣后）</div>
     <label class="modal-field-label">云梯百分比</label>
     <input type="number" id="yuntiPct" min="0" max="100" step="0.01" placeholder="0" />
     <div class="modal-actions">
@@ -599,7 +598,7 @@ window.__HOTEL = "qianyu";
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalExtras')">✖</button>
     <h2 id="extrasTitle">促销管理</h2>
-    <div class="member-hint">同组内择优取最高，跨组可叠加</div>
+    <div class="member-hint">多个促销开启时，工具按平台规则自动合并计算</div>
     <div class="extra-list" id="extraList"></div>
     <div class="modal-actions">
       <button class="btn-primary" id="extraAdd">+ 添加</button>
@@ -614,16 +613,14 @@ window.__HOTEL = "qianyu";
     <div class="extra-form">
       <label class="modal-field-label" id="extraAmountLabel">优惠名称</label>
       <input type="text" id="extraName" placeholder="请输入名称" />
-      <!-- 百分比优惠字段（base/scene/recharge） -->
       <div id="extraPctField">
         <label class="modal-field-label">优惠百分比（%）</label>
         <input type="number" id="extraPct" min="0" step="0.01" placeholder="0" />
       </div>
-      <!-- 红包字段（redpacket）：满X减Y -->
       <div id="extraRpField" style="display:none">
         <label class="modal-field-label">减免金额 Y（元）</label>
         <input type="number" id="extraRpAmount" min="0" step="0.01" placeholder="0" />
-        <label class="modal-field-label">满减门槛 X（元，基于目标价T）</label>
+        <label class="modal-field-label">满减门槛 X（元）</label>
         <input type="number" id="extraRpThreshold" min="0" step="0.01" placeholder="0" />
       </div>
       <label class="modal-field-label">应用于哪些房型（多选，默认全部）</label>
@@ -640,7 +637,7 @@ window.__HOTEL = "qianyu";
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalSubsidies')">✖</button>
     <h2>携程补贴</h2>
-    <div class="member-hint">管理携程补贴（不影响预期收入）</div>
+    <div class="member-hint">请自行计算目标时间的携程补贴并填入</div>
     <div class="extra-list" id="subsidyList"></div>
     <div class="modal-actions">
       <button class="btn-primary" id="subsidyAdd">+ 添加补贴</button>
@@ -671,7 +668,7 @@ window.__HOTEL = "qianyu";
   <div class="modal-member">
     <button class="close-btn" onclick="auth.closeModal('modalFlash')">✖</button>
     <h2>特惠一口价</h2>
-    <div class="member-hint">特惠一口价覆盖优享会、基础促销组、场景促销组、充值类促销组</div>
+    <div class="member-hint">平台补贴仍然生效</div>
     <div class="extra-form">
       <label class="modal-field-label">优惠名称</label>
       <input type="text" value="特惠一口价" readonly style="color:var(--muted);" />
