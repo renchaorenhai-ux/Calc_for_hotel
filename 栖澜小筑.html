@@ -684,113 +684,12 @@ window.__HOTEL = "qilanxiaozhu";
     </div>
   </div>
 </div>
-<div class="modal-overlay" id="modalPassword">
-  <div class="modal-password">
-    <h2>请输入访问密码</h2>
-    <div class="otp-row">
-      <input type="password" inputmode="numeric" class="otp-box" id="otp0" maxlength="1" autocomplete="off" />
-      <input type="password" inputmode="numeric" class="otp-box" id="otp1" maxlength="1" autocomplete="off" />
-      <input type="password" inputmode="numeric" class="otp-box" id="otp2" maxlength="1" autocomplete="off" />
-      <input type="password" inputmode="numeric" class="otp-box" id="otp3" maxlength="1" autocomplete="off" />
-    </div>
-    <div class="pw-error" id="pwError"></div>
-  </div>
-</div>
 <div class="toast" id="toast"></div>
 <script>
 const auth = (() => {
-  const _dSalt = new Uint8Array([0x4b,0x8e,0x2f,0x9a,0x1c,0x7d,0x3e,0x5f,0x6a,0x8b,0x0c,0x1d,0x2e,0x3f,0x4a,0x5b]);
-  const _dHash = "faf55fc7ab98ca14b2630f390702edfe4645ff860f01123b1f4042c49d991818";
-  const _it = 10000, _d = 5 * 60 * 1000;
-  const _kSalt = "qlxz_sk_s", _kHash = "qlxz_sk_h";
-  let _t = 0, _q = null, _busy = false;
-  const _hex = (buf) => Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, "0")).join("");
-  const _parseHex = (s) => {
-    if (typeof s !== "string" || !/^[0-9a-fA-F]+$/.test(s) || s.length % 2 !== 0) return null;
-    return new Uint8Array(s.match(/.{2}/g).map(b => parseInt(b, 16)));
-  };
-  const _vf = async (pw) => {
-    if (typeof crypto === "undefined" || !crypto.subtle || typeof crypto.subtle.importKey !== "function") {
-      return false;
-    }
-    try {
-      const sHex = localStorage.getItem(_kSalt);
-      const hHex = localStorage.getItem(_kHash);
-      const ok = sHex && hHex;
-      const parsed = ok ? _parseHex(sHex) : null;
-      const slt = parsed ? parsed : _dSalt;
-      const hash = ok ? hHex : _dHash;
-      const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
-      const dk = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: slt, iterations: _it, hash: "SHA-256" }, km, 256);
-      return _hex(dk) === hash;
-    } catch (e) {
-      console.warn("认证校验出错", e);
-      return false;
-    }
-  };
-  const _rawSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
-  const _upgrade = async (pw) => {
-    if (typeof crypto === "undefined" || !crypto.subtle || typeof crypto.getRandomValues !== "function") return;
-    try {
-      const ns = crypto.getRandomValues(new Uint8Array(16));
-      const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
-      const dk = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: ns, iterations: _it, hash: "SHA-256" }, km, 256);
-      _rawSet(_kSalt, _hex(ns)); _rawSet(_kHash, _hex(dk));
-    } catch (e) {
-      console.warn("认证盐升级失败", e);
-    }
-  };
-  const _open = (id) => { document.getElementById(id).classList.add("active"); };
-  const _close = (id) => { document.getElementById(id).classList.remove("active"); };
-  const clearOtp = () => { for (let i = 0; i < 4; i++) document.getElementById("otp" + i).value = ""; };
-  const getOtp = () => { let s = ""; for (let i = 0; i < 4; i++) s += document.getElementById("otp" + i).value; return s; };
-  const requireAuth = (act) => {
-    if (_t > 0 && (Date.now() - _t) < _d) { act(); return; }
-    _q = act;
-    clearOtp();
-    document.getElementById("pwError").textContent = "";
-    _open("modalPassword");
-    setTimeout(() => document.getElementById("otp0").focus(), 100);
-  };
-  const closePasswordModal = () => { _q = null; clearOtp(); _close("modalPassword"); };
-  const closeModal = (id) => { _close(id); };
-  const onConfirm = async () => {
-    if (_busy) return;
-    const ipt = getOtp();
-    if (ipt.length < 4) return;
-    _busy = true;
-    try {
-      if (await _vf(ipt)) {
-        _t = Date.now();
-        _close("modalPassword");
-        if (!localStorage.getItem(_kSalt)) _upgrade(ipt).catch(err => console.warn("认证盐升级失败", err));
-        if (_q) { const act = _q; _q = null; act(); }
-      } else {
-        document.getElementById("pwError").textContent = "密码错误，请联系开发人员获取密码";
-        clearOtp();
-        document.getElementById("otp0").focus();
-      }
-    } catch (e) {
-      console.warn("认证过程出错", e);
-      document.getElementById("pwError").textContent = "验证出错，请重试";
-      clearOtp();
-      document.getElementById("otp0").focus();
-    } finally {
-      _busy = false;
-    }
-  };
-  for (let i = 0; i < 4; i++) {
-    const el = document.getElementById("otp" + i);
-    el.addEventListener("input", function() {
-      this.value = this.value.replace(/\D/g, "");
-      if (this.value) { const n = document.getElementById("otp" + (i + 1)); if (n) n.focus(); }
-      if (getOtp().length >= 4) onConfirm();
-    });
-    el.addEventListener("keydown", function(e) {
-      if (e.key === "Backspace" && !this.value) { const p = document.getElementById("otp" + (i - 1)); if (p) p.focus(); }
-    });
-  }
-  const api = { requireAuth, closePasswordModal, closeModal };
+  const _close = (id) => { const el = document.getElementById(id); if (el) el.classList.remove("active"); };
+  const closeModal = _close;
+  const api = { closeModal };
   Object.freeze(api);
   return api;
 })();
@@ -1283,16 +1182,10 @@ function buildWasmReq(room, source, sourceValue) {
     auth.closeModal("modalMember");
     addHistory({ type: "会员级别设置", summary: "更新了房型会员级别" });
   });
-  document.getElementById("btnCommission").addEventListener("click", () => {
-    auth.requireAuth(openCommission);
-  });
-  document.getElementById("btnPoints").addEventListener("click", () => {
-    auth.requireAuth(openPoints);
-  });
+  document.getElementById("btnCommission").addEventListener("click", openCommission);
+  document.getElementById("btnPoints").addEventListener("click", openPoints);
   document.getElementById("btnMemberBtn").addEventListener("click", openMember);
-  document.getElementById("btnYunti").addEventListener("click", () => {
-    auth.requireAuth(openYunti);
-  });
+  document.getElementById("btnYunti").addEventListener("click", openYunti);
   let currentPromoGroup = "base";
   const PROMO_LABELS = { base: "基础促销组", scene: "场景促销组", redpacket: "酒店红包组", recharge: "充值类促销组" };
   const promoButtons = [
@@ -1499,11 +1392,10 @@ function buildWasmReq(room, source, sourceValue) {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    if (document.getElementById("modalPassword").classList.contains("active")) { auth.closePasswordModal(); return; }
     document.querySelectorAll(".modal-overlay.active").forEach(el => el.classList.remove("active"));
   });
   document.querySelectorAll(".modal-overlay").forEach(o => {
-    o.addEventListener("click", (e) => { if (e.target === o) { if (o.id === "modalPassword") auth.closePasswordModal(); else o.classList.remove("active"); } });
+    o.addEventListener("click", (e) => { if (e.target === o) o.classList.remove("active"); });
   });
   const showToast = (msg) => {
     const toast = document.getElementById("toast");
