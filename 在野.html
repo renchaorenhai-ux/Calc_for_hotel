@@ -1483,7 +1483,7 @@ function buildWasmReq(room, source, sourceValue) {
       const t = MEMBER_TIERS.find(x => x.key === r.member);
       return t ? `${r.name}:${t.name}` : null;
     }).filter(Boolean);
-    if (memberLines.length) lines.push(`[优享会] ${memberLines.join(",")}`);
+    if (memberLines.length) lines.push(`[优享会] 会员设置 | ${memberLines.join(",")}`);
     return lines.join("\n");
   };
   const fallbackCopy = (text, done) => {
