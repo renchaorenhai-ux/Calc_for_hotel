@@ -630,7 +630,6 @@ window.__HOTEL = "qilanxiaozhu";
     <div class="member-hint">多个促销开启时，工具按平台规则自动合并计算</div>
     <div class="extra-list" id="extraList"></div>
     <div class="modal-actions">
-      <button class="btn-primary" id="extraAdd">+ 添加</button>
       <button class="btn-cancel" onclick="auth.closeModal('modalExtras')">完成</button>
     </div>
   </div>
@@ -1269,7 +1268,6 @@ function buildWasmReq(room, source, sourceValue) {
       openModal("modalExtras");
     });
   });
-  document.getElementById("extraAdd").addEventListener("click", () => openExtraForm(null));
   document.getElementById("extraList").addEventListener("click", (e) => {
     const editBtn = e.target.closest("[data-edit]");
     const restoreBtn = e.target.closest("[data-restore]");
@@ -1304,7 +1302,7 @@ function buildWasmReq(room, source, sourceValue) {
   const openExtraForm = (ex) => {
     editingExtraId = ex ? ex.id : null;
     const isRp = currentPromoGroup === "redpacket";
-    document.getElementById("extraFormTitle").textContent = ex ? "修改优惠详情" : ("添加" + PROMO_LABELS[currentPromoGroup] + "优惠");
+    document.getElementById("extraFormTitle").textContent = "修改优惠详情";
     document.getElementById("extraFormError").textContent = "";
     document.getElementById("extraAmountLabel").textContent = isRp ? "红包名称" : "优惠名称";
     document.getElementById("extraName").value = ex ? ex.name : "";
@@ -1328,27 +1326,19 @@ function buildWasmReq(room, source, sourceValue) {
       const x = Number(document.getElementById("extraRpThreshold").value);
       if (isNaN(y) || y < 0) { document.getElementById("extraFormError").textContent = "请输入有效的减免金额 Y"; return; }
       if (isNaN(x) || x < 0) { document.getElementById("extraFormError").textContent = "请输入有效的满减门槛 X"; return; }
-      if (editingExtraId) {
-        const ex = extras.find(v => v.id === editingExtraId);
-        if (ex) { ex.name = name; ex.amount = y; ex.threshold = x; ex.rooms = roomIds; }
-      } else {
-        extras.push({ id: genId(), name, group: "redpacket", amount: y, threshold: x, rooms: roomIds });
-      }
+      const ex = extras.find(v => v.id === editingExtraId);
+      if (ex) { ex.name = name; ex.amount = y; ex.threshold = x; ex.rooms = roomIds; }
     } else {
       const pct = Number(document.getElementById("extraPct").value);
       if (isNaN(pct) || pct < 0 || pct > 100) { document.getElementById("extraFormError").textContent = "请输入有效的优惠百分比（0-100）"; return; }
-      if (editingExtraId) {
-        const ex = extras.find(v => v.id === editingExtraId);
-        if (ex) { ex.name = name; ex.pct = pct; ex.rooms = roomIds; }
-      } else {
-        extras.push({ id: genId(), name, pct, group: currentPromoGroup, rooms: roomIds });
-      }
+      const ex = extras.find(v => v.id === editingExtraId);
+      if (ex) { ex.name = name; ex.pct = pct; ex.rooms = roomIds; }
     }
     saveExtras();
     auth.closeModal("modalExtraForm");
     renderExtraList();
     refreshAllRows();
-    showToast(editingExtraId ? "促销已更新" : "促销已添加");
+    showToast("促销已更新");
   });
   const renderSubsidyList = () => {
     const container = document.getElementById("subsidyList");
