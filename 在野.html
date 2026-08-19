@@ -1479,6 +1479,11 @@ function buildWasmReq(room, source, sourceValue) {
     if (flashRooms.length && Number(settings.flashPct) > 0) {
       lines.push(`[特惠] 特惠一口价 | 系数${Number(settings.flashPct)} | ${fmtRooms(flashRooms)}`);
     }
+    const memberLines = (rooms || []).filter(r => r.member).map(r => {
+      const t = MEMBER_TIERS.find(x => x.key === r.member);
+      return t ? `${r.name}:${t.name}` : null;
+    }).filter(Boolean);
+    if (memberLines.length) lines.push(`[优享会] ${memberLines.join(",")}`);
     return lines.join("\n");
   };
   const fallbackCopy = (text, done) => {
@@ -1508,12 +1513,26 @@ function buildWasmReq(room, source, sourceValue) {
   const doImport = () => {
     const raw = document.getElementById("importText").value || "";
     const errEl = document.getElementById("importError");
-    let matched = 0, unmatched = 0;
+    let matched = 0, unmatched = 0, subsCleared = false;
     raw.split(/\n+/).forEach(line => {
-      const m = line.trim().match(/^\[([促销红包补贴特惠]+)\]\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+)$/);
+      const m = line.trim().match(/^\[(促销|红包|补贴|特惠|优享会)\]\s*(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(.*))?$/);
       if (!m) return;
-      const type = m[1], name = m[2].trim(), val = m[3].trim(), roomsStr = m[4].trim();
+      const type = m[1], name = m[2].trim(), val = m[3].trim(), roomsStr = (m[4] || "").trim();
       const roomArr = parseRooms(roomsStr);
+      if (type === "优享会") {
+        let ok = 0;
+        val.split(/[,，]/).map(x => x.trim()).filter(Boolean).forEach(p => {
+          const mm = p.match(/^(.+?)[:：](.+)$/);
+          if (!mm) return;
+          const rn = mm[1].trim(), tn = mm[2].trim();
+          const t = MEMBER_TIERS.find(x => x.name === tn);
+          const r = rooms.find(rr => rr.name === rn);
+          if (t && r) { r.member = t.key; ok++; }
+        });
+        if (ok) { saveRoomsToStorage(); matched += ok; }
+        else unmatched++;
+        return;
+      }
       if (type === "特惠") {
         const k = parseFloat(val.replace(/[^0-9.]/g, ""));
         if (!isNaN(k) && k > 0 && k < 1) {
@@ -1527,9 +1546,9 @@ function buildWasmReq(room, source, sourceValue) {
       if (type === "补贴") {
         const p = parseFloat(val.replace(/[^0-9.]/g, ""));
         if (isNaN(p)) { unmatched++; return; }
-        const s = subsidies.find(x => x.name === name);
-        if (s) { s.pct = p; s.rooms = roomArr; saveSubsidies(); matched++; }
-        else unmatched++;
+        if (!subsCleared) { subsidies = []; subsCleared = true; }
+        subsidies.push({ id: genId(), name, pct: p, rooms: roomArr });
+        saveSubsidies(); matched++;
         return;
       }
       const ex = extras.find(x => x.name === name);
