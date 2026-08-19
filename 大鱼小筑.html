@@ -364,7 +364,7 @@ input[type="number"]::-webkit-outer-spin-button {
   cursor: pointer;
 }
 .extra-item .e-edit { background: #eef2ff; color: var(--primary); }
-.extra-item .e-del { background: #fee2e2; color: #ef4444; }
+.extra-item .e-restore { background: #f1f5f9; color: #64748b; }
 .extra-form { text-align: left; margin-top: 8px; }
 .extra-form .modal-field-label { display: block; font-size: 13px; color: #555; margin: 14px 0 6px; }
 .extra-form input[type="text"],
@@ -1253,7 +1253,7 @@ function buildWasmReq(room, source, sourceValue) {
         </div>
         <div class="e-actions">
           <button class="e-edit" data-edit="${ex.id}">修改</button>
-          <button class="e-del" data-del="${ex.id}">删除</button>
+          <button class="e-restore" data-restore="${ex.id}">复原</button>
         </div>
       </div>`;
     }).join("");
@@ -1269,18 +1269,31 @@ function buildWasmReq(room, source, sourceValue) {
   document.getElementById("extraAdd").addEventListener("click", () => openExtraForm(null));
   document.getElementById("extraList").addEventListener("click", (e) => {
     const editBtn = e.target.closest("[data-edit]");
-    const delBtn = e.target.closest("[data-del]");
+    const restoreBtn = e.target.closest("[data-restore]");
     if (editBtn) {
       const ex = extras.find(x => x.id === editBtn.dataset.edit);
       if (ex) openExtraForm(ex);
-    } else if (delBtn) {
-      const id = delBtn.dataset.del;
-      if (confirm("确定删除该促销吗？此操作不可撤销。")) {
-        extras = extras.filter(x => x.id !== id);
+    } else if (restoreBtn) {
+      const ex = extras.find(x => x.id === restoreBtn.dataset.restore);
+      if (ex) {
+        const def = DEFAULT_PROMOS.find(d => d.name === ex.name && d.group === ex.group);
+        const allNames = rooms.map(r => r.name);
+        if (def) {
+          if (ex.group === "redpacket") {
+            ex.amount = Number(def.amount) || 0;
+            ex.threshold = Number(def.threshold) || 0;
+          } else {
+            ex.pct = Number(def.pct) || 0;
+          }
+        } else {
+          if (ex.group === "redpacket") { ex.amount = 0; ex.threshold = 0; }
+          else { ex.pct = 0; }
+        }
+        ex.rooms = allNames.slice();
         saveExtras();
         renderExtraList();
         refreshAllRows();
-        showToast("促销已删除");
+        showToast("已复原为默认值");
       }
     }
   });
@@ -1349,7 +1362,7 @@ function buildWasmReq(room, source, sourceValue) {
         </div>
         <div class="e-actions">
           <button class="e-edit" data-sedit="${s.id}">修改</button>
-          <button class="e-del" data-sdel="${s.id}">删除</button>
+          <button class="e-restore" data-srestore="${s.id}">复原</button>
         </div>
       </div>`;
     }).join("");
@@ -1361,18 +1374,19 @@ function buildWasmReq(room, source, sourceValue) {
   document.getElementById("subsidyAdd").addEventListener("click", () => openSubsidyForm(null));
   document.getElementById("subsidyList").addEventListener("click", (e) => {
     const editBtn = e.target.closest("[data-sedit]");
-    const delBtn = e.target.closest("[data-sdel]");
+    const restoreBtn = e.target.closest("[data-srestore]");
     if (editBtn) {
       const s = subsidies.find(x => x.id === editBtn.dataset.sedit);
       if (s) openSubsidyForm(s);
-    } else if (delBtn) {
-      const id = delBtn.dataset.sdel;
-      if (confirm("确定删除该补贴吗？此操作不可撤销。")) {
-        subsidies = subsidies.filter(x => x.id !== id);
+    } else if (restoreBtn) {
+      const s = subsidies.find(x => x.id === restoreBtn.dataset.srestore);
+      if (s) {
+        s.pct = 0;
+        s.rooms = rooms.map(r => r.name);
         saveSubsidies();
         renderSubsidyList();
         refreshAllRows();
-        showToast("补贴已删除");
+        showToast("已复原为默认值");
       }
     }
   });
