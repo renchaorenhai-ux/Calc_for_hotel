@@ -1562,6 +1562,8 @@ function buildWasmReq(room, source, sourceValue) {
     renderExtraList();
     renderSubsidyList();
     refreshAllRows();
+    const ml = document.getElementById("memberList");
+    if (ml && ml.children.length) buildMemberList();
     auth.closeModal("modalImport");
     showToast(matched ? (`已导入 ${matched} 项` + (unmatched ? `，${unmatched} 项未匹配` : "")) : "没有匹配到优惠");
   };
