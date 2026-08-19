@@ -737,13 +737,13 @@ const auth = (() => {
   const loadRoomsFromStorage = () => safeStore.get(STORAGE_KEY, null);
   const saveRoomsToStorage = () => { safeStore.set(STORAGE_KEY, rooms.map(r => ({ name: r.name, member: r.member, flash: !!r.flash }))); };
   const defaultRooms = [
+    { name: "【叠语】 侧海景双床房",    member: "gold" },
+    { name: "【静谧】 侧海景大床房",    member: "gold" },
+    { name: "【静谧】 侧海景优享大床房",  member: "gold" },
+    { name: "【静谧】 侧海景优享双床房",  member: "gold" },
     { name: "【顶奢】 全海景顶层大床房",  member: "gold" },
     { name: "【野奢】 全海景私汤三床房",  member: "gold" },
     { name: "【野奢】 全海景私汤双卧套房", member: "gold" },
-    { name: "【静谧】 侧海景大床房",    member: "gold" },
-    { name: "【叠语】 侧海景双床房",    member: "gold" },
-    { name: "【静谧】 侧海景优享大床房",  member: "gold" },
-    { name: "【静谧】 侧海景优享双床房",  member: "gold" },
   ];
   const savedRooms = loadRoomsFromStorage();
   let rooms = JSON.parse(JSON.stringify(defaultRooms));
