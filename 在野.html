@@ -305,6 +305,34 @@ input[type="number"]::-webkit-outer-spin-button {
   margin: 0 5px;
 }
 .extra-entry button:hover { opacity: 0.85; }
+#btnPromoIO {
+  background: linear-gradient(135deg, #eef2ff, #f0f4ff);
+  color: var(--primary);
+}
+.io-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+.io-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  font-family: ui-monospace, monospace;
+}
+.io-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79,124,255,0.12);
+}
 #btnSubsidies {
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
   color: #b45309;
@@ -524,6 +552,11 @@ window.__HOTEL = "zaiye";
   </div>
   <div class="extra-entry">
     <div class="promo-row">
+      <button id="btnPromoIO">优惠导入 / 导出</button>
+    </div>
+  </div>
+  <div class="extra-entry">
+    <div class="promo-row">
       <button id="btnBase">基础促销组</button>
       <button id="btnScene">场景促销组</button>
       <button id="btnRedpacket">酒店红包组</button>
@@ -681,6 +714,22 @@ window.__HOTEL = "zaiye";
     <div class="modal-actions">
       <button class="btn-primary" id="flashSave">保存</button>
       <button class="btn-cancel" onclick="auth.closeModal('modalFlash')">取消</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalImport">
+  <div class="modal-member">
+    <button class="close-btn" onclick="auth.closeModal('modalImport')">✖</button>
+    <h2>优惠导入 / 导出</h2>
+    <div class="member-hint">导出：复制下方各不为零的优惠文本；导入：粘贴该文本并自动匹配。</div>
+    <div class="io-block">
+      <button class="btn-primary" id="ioExport">复制导出文本</button>
+      <textarea id="importText" class="io-textarea" rows="8" placeholder="[促销] 天天特价 | 折扣15% | 房型A,房型B&#10;[补贴] 携程补贴 | 折扣8% | 全部&#10;[特惠] 特惠一口价 | 系数0.685 | 全部"></textarea>
+      <div class="pw-error" id="importError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="auth.closeModal('modalImport')">取消</button>
+      <button class="btn-primary" id="ioImport">匹配导入</button>
     </div>
   </div>
 </div>
@@ -1404,6 +1453,110 @@ function buildWasmReq(room, source, sourceValue) {
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 2500);
   };
+  const allRoomNames = () => (rooms || []).map(r => r.name);
+  const fmtRooms = (arr) => {
+    if (!Array.isArray(arr) || !arr.length) return "全部";
+    const all = allRoomNames();
+    if (all.length && arr.length >= all.length && all.every(n => arr.indexOf(n) !== -1)) return "全部";
+    return arr.join(",");
+  };
+  const parseRooms = (s) => {
+    if (!s || s.trim() === "全部") return [];
+    return s.split(/[,，]/).map(x => x.trim()).filter(Boolean);
+  };
+  const exportPromos = () => {
+    const lines = [];
+    (extras || []).forEach(ex => {
+      if (ex.group === "redpacket") {
+        if (Number(ex.amount) > 0) lines.push(`[红包] ${ex.name} | 满${Number(ex.threshold) || 0}减${Number(ex.amount)} | ${fmtRooms(ex.rooms)}`);
+      } else {
+        if (Number(ex.pct) > 0) lines.push(`[促销] ${ex.name} | 折扣${Number(ex.pct)}% | ${fmtRooms(ex.rooms)}`);
+      }
+    });
+    (subsidies || []).forEach(s => {
+      if (Number(s.pct) > 0) lines.push(`[补贴] ${s.name} | 折扣${Number(s.pct)}% | ${fmtRooms(s.rooms)}`);
+    });
+    const flashRooms = (rooms || []).filter(r => r.flash).map(r => r.name);
+    if (flashRooms.length && Number(settings.flashPct) > 0) {
+      lines.push(`[特惠] 特惠一口价 | 系数${Number(settings.flashPct)} | ${fmtRooms(flashRooms)}`);
+    }
+    return lines.join("\n");
+  };
+  const fallbackCopy = (text, done) => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      done();
+    } catch (e) { showToast("复制失败，请手动选择文本"); }
+  };
+  const doExport = () => {
+    const text = exportPromos();
+    if (!text) { showToast("没有已设置的优惠"); return; }
+    const ta = document.getElementById("importText");
+    if (ta) ta.value = text;
+    const done = () => showToast("优惠文本已复制");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else fallbackCopy(text, done);
+  };
+  const doImport = () => {
+    const raw = document.getElementById("importText").value || "";
+    const errEl = document.getElementById("importError");
+    let matched = 0, unmatched = 0;
+    raw.split(/\n+/).forEach(line => {
+      const m = line.trim().match(/^\[([促销红包补贴特惠]+)\]\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+)$/);
+      if (!m) return;
+      const type = m[1], name = m[2].trim(), val = m[3].trim(), roomsStr = m[4].trim();
+      const roomArr = parseRooms(roomsStr);
+      if (type === "特惠") {
+        const k = parseFloat(val.replace(/[^0-9.]/g, ""));
+        if (!isNaN(k) && k > 0 && k < 1) {
+          settings.flashPct = k; saveSettings();
+          if (roomArr.length) rooms.forEach(r => { if (roomArr.indexOf(r.name) !== -1) r.flash = true; });
+          else rooms.forEach(r => { r.flash = true; });
+          saveRoomsToStorage(); matched++;
+        } else unmatched++;
+        return;
+      }
+      if (type === "补贴") {
+        const p = parseFloat(val.replace(/[^0-9.]/g, ""));
+        if (isNaN(p)) { unmatched++; return; }
+        const s = subsidies.find(x => x.name === name);
+        if (s) { s.pct = p; s.rooms = roomArr; saveSubsidies(); matched++; }
+        else unmatched++;
+        return;
+      }
+      const ex = extras.find(x => x.name === name);
+      if (!ex) { unmatched++; return; }
+      if (type === "红包") {
+        const mm = val.match(/满\s*([0-9.]+)\s*减\s*([0-9.]+)/);
+        if (mm) { ex.threshold = parseFloat(mm[1]); ex.amount = parseFloat(mm[2]); ex.rooms = roomArr; saveExtras(); matched++; }
+        else { unmatched++; }
+      } else {
+        const p = parseFloat(val.replace(/[^0-9.]/g, ""));
+        if (isNaN(p)) { unmatched++; return; }
+        ex.pct = p; ex.rooms = roomArr; saveExtras(); matched++;
+      }
+    });
+    renderExtraList();
+    renderSubsidyList();
+    refreshAllRows();
+    auth.closeModal("modalImport");
+    showToast(matched ? (`已导入 ${matched} 项` + (unmatched ? `，${unmatched} 项未匹配` : "")) : "没有匹配到优惠");
+  };
+  const btnPromoIO = document.getElementById("btnPromoIO");
+  if (btnPromoIO) btnPromoIO.addEventListener("click", () => { document.getElementById("importError").textContent = ""; openModal("modalImport"); });
+  const ioExport = document.getElementById("ioExport");
+  if (ioExport) ioExport.addEventListener("click", doExport);
+  const ioImport = document.getElementById("ioImport");
+  if (ioImport) ioImport.addEventListener("click", doImport);
   renderHistory();
 })();
 </script>
