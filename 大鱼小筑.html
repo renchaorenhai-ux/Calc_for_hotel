@@ -1362,7 +1362,7 @@ function buildWasmReq(room, source, sourceValue) {
         </div>
         <div class="e-actions">
           <button class="e-edit" data-sedit="${s.id}">修改</button>
-          <button class="e-restore" data-srestore="${s.id}">复原</button>
+          <button class="e-del" data-sdel="${s.id}">删除</button>
         </div>
       </div>`;
     }).join("");
@@ -1374,19 +1374,18 @@ function buildWasmReq(room, source, sourceValue) {
   document.getElementById("subsidyAdd").addEventListener("click", () => openSubsidyForm(null));
   document.getElementById("subsidyList").addEventListener("click", (e) => {
     const editBtn = e.target.closest("[data-sedit]");
-    const restoreBtn = e.target.closest("[data-srestore]");
+    const delBtn = e.target.closest("[data-sdel]");
     if (editBtn) {
       const s = subsidies.find(x => x.id === editBtn.dataset.sedit);
       if (s) openSubsidyForm(s);
-    } else if (restoreBtn) {
-      const s = subsidies.find(x => x.id === restoreBtn.dataset.srestore);
-      if (s) {
-        s.pct = 0;
-        s.rooms = rooms.map(r => r.name);
+    } else if (delBtn) {
+      const id = delBtn.dataset.sdel;
+      if (confirm("确定删除该补贴吗？此操作不可撤销。")) {
+        subsidies = subsidies.filter(x => x.id !== id);
         saveSubsidies();
         renderSubsidyList();
         refreshAllRows();
-        showToast("已复原为默认值");
+        showToast("补贴已删除");
       }
     }
   });
