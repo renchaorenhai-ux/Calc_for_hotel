@@ -2,7 +2,7 @@
 // 版本号须与 HTML 中的 APP_VERSION 保持一致
 const APP_VERSION = "1.0.0";
 const CACHE = "zaiye-pwa-v" + APP_VERSION;
-const ASSETS = ["./在野pwa.html", "./", "./index.html"];
+const ASSETS = ["./在野pwa.html", "./"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

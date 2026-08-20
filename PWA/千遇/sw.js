@@ -2,7 +2,7 @@
 // 版本号须与 HTML 中的 APP_VERSION 保持一致
 const APP_VERSION = "1.0.0";
 const CACHE = "qianyu-pwa-v" + APP_VERSION;
-const ASSETS = ["./千遇pwa.html", "./", "./index.html"];
+const ASSETS = ["./千遇pwa.html", "./"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
