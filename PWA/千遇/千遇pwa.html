@@ -686,23 +686,8 @@ thead th {
   z-index: 5;
 }
 </style>
-<script>
-window.__HOTEL = "qianyu";
-(function () {
-  try {
-    var got = new URLSearchParams(window.location.search).get("hotel");
-    window.__HOTEL_OK = (got === window.__HOTEL);
-  } catch (e) { window.__HOTEL_OK = false; }
-})();
-</script>
 </head>
-<body><div id="hotelGate" style="position:fixed;inset:0;z-index:99999;display:none;background:#f5f7fa;align-items:center;justify-content:center;font-family:system-ui;text-align:center;">
-  <div>
-    <h2 style="margin:0 0 12px;color:#1a1a1a;">页面入口不属于该酒店</h2>
-    <p style="color:#94a3b8;margin:0;line-height:1.6;">链接错误或入口被篡改，请联系发放方获取正确的启动器。</p>
-  </div>
-</div>
-<div class="container">
+<body><div class="container">
   <h1>千遇酒店价格调整工具</h1>
   <p class="sub">下方切换输入模式</p>
   <div class="view-switch" id="viewSwitch">
@@ -931,11 +916,6 @@ const auth = (() => {
   return api;
 })();
 (function() {
-  if (window.__HOTEL_OK !== true) {
-    var _gate = document.getElementById("hotelGate");
-    if (_gate) _gate.style.display = "flex";
-    return;
-  }
   const safeStore = {
     get(k, fb) { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : fb; } catch { return fb; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
