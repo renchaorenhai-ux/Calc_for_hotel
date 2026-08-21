@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>在野酒店卖价计算器</title>
+<title>栖澜小筑酒店卖价计算器</title>
 <!-- PWA: standalone 全屏 + 主屏幕直达 -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="在野" />
+<meta name="apple-mobile-web-app-title" content="栖澜" />
 <!-- 内联 manifest（单文件自洽） -->
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <style>
 :root {
-  --primary: #d4237a;
+  --primary: #4f7cff;
   --bg: #f5f7fa;
   --card: #ffffff;
   --text: #1a1a1a;
@@ -687,7 +687,7 @@ thead th {
 }
 </style>
 <script>
-window.__HOTEL = "zaiye";
+window.__HOTEL = "qilanxiaozhu";
 (function () {
   try {
     var got = new URLSearchParams(window.location.search).get("hotel");
@@ -703,7 +703,7 @@ window.__HOTEL = "zaiye";
   </div>
 </div>
 <div class="container">
-  <h1>在野酒店价格调整工具</h1>
+  <h1>栖澜小筑酒店价格调整工具</h1>
   <p class="sub">下方切换输入模式</p>
   <div class="view-switch" id="viewSwitch">
     <button class="vs-btn active" data-mode="sell">应填卖价 + 客户实付价</button>
@@ -787,7 +787,7 @@ window.__HOTEL = "zaiye";
     <div class="history-list" id="historyList"></div>
   </div>
   <p class="footer" id="footerText">
-    <span id="btnCommission">在野酒店运维</span>
+    <span id="btnCommission">栖澜小筑酒店运维</span>
     ·
     <span id="btnPoints">张之余开发</span>
     ·
@@ -942,7 +942,7 @@ const auth = (() => {
     rawGet(k, fb) { try { const v = localStorage.getItem(k); return v != null ? v : fb; } catch { return fb; } },
     rawSet(k, v) { try { localStorage.setItem(k, v); } catch {} },
   };
-  const STORAGE_KEY = "zaiye_rooms_data";
+  const STORAGE_KEY = "qilanxiaozhu_rooms_data";
   const SETTINGS_KEY = STORAGE_KEY + "_settings";
   const DATA_VERSION = 2;
   const VERSION_KEY = STORAGE_KEY + "_version";
@@ -974,13 +974,12 @@ const auth = (() => {
   const loadRoomsFromStorage = () => safeStore.get(STORAGE_KEY, null);
   const saveRoomsToStorage = () => { safeStore.set(STORAGE_KEY, rooms.map(r => ({ name: r.name, member: r.member, flash: !!r.flash }))); };
     const defaultRooms = [
-    { name: "【叠语】 侧海景双床房",    member: "gold" },
-    { name: "【静谧】 侧海景大床房",    member: "gold" },
-    { name: "【静谧】 侧海景优享大床房",  member: "gold" },
-    { name: "【静谧】 侧海景优享双床房",  member: "gold" },
-    { name: "【顶奢】 全海景顶层大床房",  member: "gold" },
-    { name: "【野奢】 全海景私汤三床房",  member: "gold" },
-    { name: "【野奢】 全海景私汤双卧套房", member: "gold" },
+    { name: "澜影-巨幕海景大床房",   member: "gold" },
+    { name: "澜汐-浴缸海景房",     member: "gold" },
+    { name: "海屿-清川-海景家庭套房", member: "gold" },
+    { name: "云澜-枕海-侧观海大床房", member: "gold" },
+    { name: "风渡-沧海-侧观海双床房", member: "gold" },
+    { name: "青椰-望汐-街景大床房",  member: "gold" },
   ];
   const savedRooms = loadRoomsFromStorage();
   let rooms = JSON.parse(JSON.stringify(defaultRooms));

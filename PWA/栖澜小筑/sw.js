@@ -1,8 +1,8 @@
-// 千遇酒店 PWA Service Worker（离线壳 + 版本化缓存）
+// 栖澜小筑 PWA Service Worker（离线壳 + 版本化缓存）
 // 版本号须与 HTML 中的 APP_VERSION 保持一致
 const APP_VERSION = "1.0.0";
-const CACHE = "qianyu-pwa-v1.0.0";
-const ASSETS = ["./千遇pwa.html", "./"];
+const CACHE = "qilanxiaozhu-pwa-v1.0.0";
+const ASSETS = ["./栖澜小筑pwa.html", "./"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
