@@ -1,7 +1,7 @@
-// 栖澜小筑 PWA Service Worker（离线壳 + 版本化缓存）
-// 版本号须与 HTML 中的 APP_VERSION 保持一致
-const APP_VERSION = "1.0.0";
-const CACHE = "qilanxiaozhu-pwa-v1.0.0";
+// 栖澜小筑 PWA Service Worker（离线壳 + 自动版本化缓存）
+// 版本号由 build_all 自动生成（git hash），代码变 → 版本变 → SW 更新并清除旧缓存
+const APP_VERSION = "20260821184737";
+const CACHE = "qilanxiaozhu-pwa-20260821184737";
 const ASSETS = ["./栖澜小筑pwa.html", "./"];
 
 self.addEventListener("install", (event) => {
