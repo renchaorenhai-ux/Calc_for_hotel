@@ -792,7 +792,7 @@ const auth = (() => {
       if (typeof sr.flash === "boolean") r.flash = sr.flash;
     });
   }
-  const DEFAULT_SETTINGS = { commissionPct: 0, pointsPct: 0, flashPct: 0, yuntiPct: 0 };
+  const DEFAULT_SETTINGS = { commissionPct: 12, pointsPct: 5, flashPct: 0, yuntiPct: 2 };
   const _rawSettings = safeStore.get(SETTINGS_KEY, null);
   const settings = { commissionPct: DEFAULT_SETTINGS.commissionPct, pointsPct: DEFAULT_SETTINGS.pointsPct, flashPct: DEFAULT_SETTINGS.flashPct, yuntiPct: DEFAULT_SETTINGS.yuntiPct };
   if (_rawSettings && typeof _rawSettings === "object") {
@@ -1329,14 +1329,16 @@ function buildWasmReq(room, source, sourceValue) {
   };
   const allRoomNames = () => (rooms || []).map(r => r.name);
   const fmtRooms = (arr) => {
-    if (!Array.isArray(arr) || !arr.length) return "全部";
+    if (!Array.isArray(arr) || !arr.length) return "无";
     const all = allRoomNames();
     if (all.length && arr.length >= all.length && all.every(n => arr.indexOf(n) !== -1)) return "全部";
     return arr.join(",");
   };
   const parseRooms = (s) => {
-    if (!s || s.trim() === "全部") return [];
-    return s.split(/[,，]/).map(x => x.trim()).filter(Boolean);
+    const t = (s || "").trim();
+    if (!t || t === "全部") return allRoomNames().slice();
+    if (t === "无") return [];
+    return t.split(/[,，]/).map(x => x.trim()).filter(Boolean);
   };
   const exportPromos = () => {
     const lines = [];
@@ -1359,6 +1361,7 @@ function buildWasmReq(room, source, sourceValue) {
       return t ? `${r.name}:${t.name}` : null;
     }).filter(Boolean);
     if (memberLines.length) lines.push(`[优享会] 会员设置 | ${memberLines.join(",")}`);
+    lines.push(`[设置] 参数 | 佣金${Number(settings.commissionPct) || 0}% 积分${Number(settings.pointsPct) || 0}% 云梯${Number(settings.yuntiPct) || 0}%`);
     return lines.join("\n");
   };
   const fallbackCopy = (text, done) => {
@@ -1390,7 +1393,7 @@ function buildWasmReq(room, source, sourceValue) {
     const errEl = document.getElementById("importError");
     let matched = 0, unmatched = 0, subsCleared = false;
     raw.split(/\n+/).forEach(line => {
-      const m = line.trim().match(/^\[(促销|红包|补贴|特惠|优享会)\]\s*(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(.*))?$/);
+      const m = line.trim().match(/^\[(促销|红包|补贴|特惠|优享会|设置)\]\s*(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(.*))?$/);
       if (!m) return;
       const type = m[1], name = m[2].trim(), val = m[3].trim(), roomsStr = (m[4] || "").trim();
       const roomArr = parseRooms(roomsStr);
@@ -1412,10 +1415,22 @@ function buildWasmReq(room, source, sourceValue) {
         const k = parseFloat(val.replace(/[^0-9.]/g, ""));
         if (!isNaN(k) && k > 0 && k < 1) {
           settings.flashPct = k; saveSettings();
-          if (roomArr.length) rooms.forEach(r => { if (roomArr.indexOf(r.name) !== -1) r.flash = true; });
-          else rooms.forEach(r => { r.flash = true; });
+          rooms.forEach(r => { r.flash = roomArr.length ? roomArr.indexOf(r.name) !== -1 : true; });
           saveRoomsToStorage(); matched++;
         } else unmatched++;
+        return;
+      }
+      if (type === "设置") {
+        const setPctByRe = (re, key, max) => {
+          if (!re) return false;
+          const v = parseFloat(re[1]);
+          if (isNaN(v) || v < 0 || v > max) return false;
+          settings[key] = v; return true;
+        };
+        const a = setPctByRe(val.match(/佣金\s*([0-9.]+)\s*%/), "commissionPct", 99.99);
+        const b = setPctByRe(val.match(/积分\s*([0-9.]+)\s*%/), "pointsPct", 100);
+        const c = setPctByRe(val.match(/云梯\s*([0-9.]+)\s*%/), "yuntiPct", 100);
+        if (a || b || c) { saveSettings(); matched++; } else { unmatched++; }
         return;
       }
       if (type === "补贴") {
