@@ -1770,7 +1770,7 @@ function buildWasmReq(room, source, sourceValue) {
       });
       const dFrom = (document.getElementById("dateFrom") || {}).value || "";
       const dTo = (document.getElementById("dateTo") || {}).value || "";
-      const header = "在野酒店「" + dFrom + "」到「" + dTo + "」：";
+      const header = "大鱼小筑「" + dFrom + "」到「" + dTo + "」：";
       const text = lines.length ? (header + "\n" + lines.join("\n")) : header;
       const done = () => showToast("输入与计算结果已复制");
       if (navigator.clipboard && navigator.clipboard.writeText) {
