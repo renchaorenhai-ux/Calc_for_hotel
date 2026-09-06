@@ -4,3 +4,5 @@ hotel_config.json
 README.md
 index.html
 Launcher_*.html
+.playwright-cli/
+init.yaml
