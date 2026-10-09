@@ -1782,12 +1782,10 @@ function buildWasmReq(room, source, sourceValue) {
   if (btnCopy) {
     btnCopy.addEventListener("click", function () {
       const lines = (rooms || []).map((room, i) => {
-        const sellEl = document.getElementById("sell-" + i);
         const cInp = document.querySelector(`input[data-index="${i}"][data-col="customer"]`);
         const name = room && room.name ? room.name : "";
-        const sell = sellEl ? sellEl.textContent.trim() : "";
         const customer = cInp ? cInp.value.trim() : "";
-        return name + " / " + sell + " / " + customer;
+        return name + " / " + customer;
       });
       const dFrom = (document.getElementById("dateFrom") || {}).value || "";
       const dTo = (document.getElementById("dateTo") || {}).value || "";
