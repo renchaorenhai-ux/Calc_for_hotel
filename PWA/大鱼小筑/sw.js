@@ -1,7 +1,7 @@
 // 大鱼小筑 PWA Service Worker（离线壳 + 自动版本化缓存）
 // 版本号由 build_all 自动生成（git hash），代码变 → 版本变 → SW 更新并清除旧缓存
-const APP_VERSION = "20261009115752";
-const CACHE = "dayuxiaozhu-pwa-20261009115752";
+const APP_VERSION = "20261022102118";
+const CACHE = "dayuxiaozhu-pwa-20261022102118";
 const ASSETS = ["./大鱼小筑pwa.html", "./"];
 
 self.addEventListener("install", (event) => {

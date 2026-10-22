@@ -320,6 +320,94 @@ input[type="number"]::-webkit-outer-spin-button {
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
   color: #b45309;
 }
+.calc-toggle {
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: #555;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.calc-toggle .calc-caret {
+  font-size: 12px;
+  color: var(--muted);
+  transition: transform .18s;
+}
+.calc-toggle.open .calc-caret { transform: rotate(180deg); }
+.calc-panel {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fcfcfd;
+}
+.calc-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 10px;
+}
+.calc-grid input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #dfe3ea;
+  border-radius: 8px;
+  box-sizing: border-box;
+  background: #fff;
+}
+.calc-grid input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79,124,255,0.12);
+}
+.calc-run { width: 100%; margin-top: 12px; }
+.calc-panel[hidden],
+.calc-result[hidden] { display: none; }
+.calc-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #eef2ff;
+  border-radius: 10px;
+}
+.calc-result-val {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.calc-apply {
+  padding: 7px 14px;
+  font-size: 13px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+}
+.calc-apply:hover { filter: brightness(1.05); }
+.calc-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  min-height: 16px;
+}
+.calc-tip.err { color: #ef4444; }
 .extra-list {
   display: flex;
   flex-direction: column;
@@ -863,6 +951,30 @@ thead th {
     <h2>携程补贴</h2>
     <div class="member-hint">请自行计算目标时间的携程补贴并填入</div>
     <div class="extra-list" id="subsidyList"></div>
+    <button class="calc-toggle" id="subsidyCalcToggle" type="button">
+      <span>补贴系数反推</span><span class="calc-caret">▾</span>
+    </button>
+    <div class="calc-panel" id="subsidyCalcPanel" hidden>
+      <div class="calc-head"><span>后台房费</span><span>十亿补贴</span></div>
+      <div class="calc-grid">
+        <input type="number" data-calc="a" min="0" step="0.01" placeholder="后台房费" />
+        <input type="number" data-calc="b" min="0" step="1" placeholder="补贴金额" />
+        <input type="number" data-calc="a" min="0" step="0.01" placeholder="后台房费" />
+        <input type="number" data-calc="b" min="0" step="1" placeholder="补贴金额" />
+        <input type="number" data-calc="a" min="0" step="0.01" placeholder="后台房费" />
+        <input type="number" data-calc="b" min="0" step="1" placeholder="补贴金额" />
+        <input type="number" data-calc="a" min="0" step="0.01" placeholder="后台房费" />
+        <input type="number" data-calc="b" min="0" step="1" placeholder="补贴金额" />
+        <input type="number" data-calc="a" min="0" step="0.01" placeholder="后台房费" />
+        <input type="number" data-calc="b" min="0" step="1" placeholder="补贴金额" />
+      </div>
+      <button class="btn-primary calc-run" id="subsidyCalcRun" type="button">反推</button>
+      <div class="calc-result" id="subsidyCalcResult" hidden>
+        <span class="calc-result-val" id="subsidyCalcVal">—</span>
+        <button class="calc-apply" id="subsidyCalcApply" type="button">一键填入</button>
+      </div>
+      <div class="calc-tip" id="subsidyCalcTip"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn-primary" id="subsidyAdd">+ 添加补贴</button>
       <button class="btn-cancel" onclick="auth.closeModal('modalSubsidies')">完成</button>
@@ -876,7 +988,7 @@ thead th {
       <label class="modal-field-label">补贴名称</label>
       <input type="text" id="subsidyName" placeholder="如：十亿补贴" />
       <label class="modal-field-label">补贴百分比（%）</label>
-      <input type="number" id="subsidyPct" min="0" step="0.01" placeholder="0" />
+      <input type="number" id="subsidyPct" min="0" step="0.001" placeholder="0" />
       <label class="modal-field-label">应用于哪些房型（多选，默认全部）</label>
       <div class="checkbox-wrap room-wrap" id="subsidyRoomsWrap"></div>
       <div class="pw-error" id="subsidyFormError"></div>
@@ -1527,6 +1639,88 @@ function buildWasmReq(room, source, sourceValue) {
     renderExtraList();
     refreshAllRows();
     showToast("促销已更新");
+  });
+  const calcToggleEl = document.getElementById("subsidyCalcToggle");
+  const calcPanelEl = document.getElementById("subsidyCalcPanel");
+  const calcResultEl = document.getElementById("subsidyCalcResult");
+  const calcValEl = document.getElementById("subsidyCalcVal");
+  const calcTipEl = document.getElementById("subsidyCalcTip");
+  const calcApplyEl = document.getElementById("subsidyCalcApply");
+  let calcPickedPct = null;
+  const calcCeilDiv = (n, d) => Math.floor((n + d - 1) / d);
+  const fmtCalcPct = (v) => String(Math.round(v * 1000) / 1000);
+  const resetCalcResult = () => {
+    calcPickedPct = null;
+    calcResultEl.hidden = true;
+    calcValEl.textContent = "—";
+    calcTipEl.textContent = "";
+    calcTipEl.classList.remove("err");
+  };
+  const readCalcPoints = () => {
+    const as = Array.from(document.querySelectorAll('#subsidyCalcPanel input[data-calc="a"]'));
+    const bs = Array.from(document.querySelectorAll('#subsidyCalcPanel input[data-calc="b"]'));
+    return as.map((el, i) => ({ a: Number(el.value), b: Number(bs[i] ? bs[i].value : NaN) }))
+      .filter(p => !isNaN(p.a) && !isNaN(p.b) && p.a > 0 && p.b > 0);
+  };
+  const fitCalcPct = (pts) => {
+    const rows = pts.map(p => ({ ai: Math.round(p.a * 100), b: Math.round(p.b) }));
+    const hits = [];
+    for (let p = 1; p <= 50000; p++) {
+      let all = true;
+      for (let k = 0; k < rows.length; k++) {
+        if (calcCeilDiv(rows[k].ai * p, 10000000) !== rows[k].b) { all = false; break; }
+      }
+      if (all) hits.push(p);
+    }
+    return hits;
+  };
+  const pickCalcPct = (hits) => hits[Math.floor(hits.length / 2)];
+  calcToggleEl.addEventListener("click", () => {
+    const willOpen = calcPanelEl.hidden;
+    calcPanelEl.hidden = !willOpen;
+    calcToggleEl.classList.toggle("open", willOpen);
+  });
+  document.getElementById("subsidyCalcRun").addEventListener("click", () => {
+    resetCalcResult();
+    const pts = readCalcPoints();
+    if (pts.length < 2) {
+      calcTipEl.textContent = "至少填两行有效数据（后台房费 + 十亿补贴）";
+      calcTipEl.classList.add("err");
+      return;
+    }
+    if (pts.some(p => !Number.isInteger(p.b))) {
+      calcTipEl.textContent = "十亿补贴金额按后台整数填写";
+      calcTipEl.classList.add("err");
+      return;
+    }
+    const hits = fitCalcPct(pts);
+    if (!hits.length) {
+      calcTipEl.textContent = "数据相互矛盾：可能混了不同活动/月份，或补贴有封顶";
+      calcTipEl.classList.add("err");
+      return;
+    }
+    const picked = pickCalcPct(hits);
+    calcPickedPct = picked / 1000;
+    calcValEl.textContent = fmtCalcPct(calcPickedPct) + "%";
+    calcResultEl.hidden = false;
+    const lo = hits[0] / 1000, hi = hits[hits.length - 1] / 1000;
+    calcTipEl.textContent = `可行区间 ${fmtCalcPct(lo)}% ~ ${fmtCalcPct(hi)}%，基于 ${pts.length} 组数据`;
+  });
+  calcApplyEl.addEventListener("click", () => {
+    if (calcPickedPct == null) return;
+    const all = allRoomNames();
+    let target = subsidies.find(s => s.name === "十亿补贴");
+    if (!target) {
+      target = { id: genId(), name: "十亿补贴", pct: calcPickedPct, rooms: all.slice() };
+      subsidies.push(target);
+    } else {
+      target.pct = calcPickedPct;
+      if (!target.rooms || !target.rooms.length) target.rooms = all.slice();
+    }
+    saveSubsidies();
+    renderSubsidyList();
+    refreshAllRows();
+    showToast(`已填入十亿补贴 ${fmtCalcPct(calcPickedPct)}%`);
   });
   const renderSubsidyList = () => {
     const container = document.getElementById("subsidyList");
