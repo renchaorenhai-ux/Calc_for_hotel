@@ -1382,6 +1382,11 @@ function buildWasmReq(room, source, sourceValue) {
     inp.step = "any";
     inp.placeholder = placeholder;
     inp.addEventListener("wheel", (e) => e.preventDefault(), { passive: false });
+    inp.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || e.shiftKey) return;
+      const next = document.querySelector(`input[data-index="${Number(i) + 1}"][data-col="${col}"]`);
+      if (next) { next.focus(); next.select(); }
+    });
     inp.dataset.index = i;
     inp.dataset.col = col;
     return inp;
